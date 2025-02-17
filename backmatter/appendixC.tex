@@ -1,0 +1,104 @@
+\section*{ПРИЛОЖЕНИЕ В}
+
+% add introduction to toc
+\addcontentsline{toc}{section}{ПРИЛОЖЕНИЕ В}
+
+% ------------------------------------CONTENT--------------------------------------
+
+Программный код, используемый в данной работе.
+
+\begin{center}
+  \begin{lstlisting}[language=Python]
+import pandas as pd
+
+import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
+import matplotlib.font_manager as fm
+
+font_path = 'extra/Cinzel-VariableFont_wght.ttf'
+
+cinzel_font = fm.FontProperties(fname=font_path)
+fm.fontManager.addfont(font_path)
+
+RED = '#6F1D1B'
+
+def decorate_plot(ax, xname, yname, loc):
+    SIZE_TICKS = 12
+
+    # Eliminate upper and right axes
+    ax.spines['right'].set_color('none')
+    ax.spines['top'].set_color('none')
+
+    # Show ticks in the left and lower axes only
+    ax.xaxis.set_ticks_position('bottom')
+    ax.yaxis.set_ticks_position('left')
+
+    # x axis name
+    ax.set_xlabel(xname, fontsize=15)
+
+    # y axis name
+    ax.set_ylabel(yname, fontsize=15)
+
+    # Adjust the font size of the tick labels
+    ax.tick_params(axis='both', which='major', labelsize=SIZE_TICKS)
+
+    if loc:
+        plt.legend(fontsize=10, loc=loc)
+
+    # Update font settings
+    plt.rcParams.update({
+        "font.family": cinzel_font.get_name(), 
+        "font.size": 16
+    })
+
+    # Adjust layout
+    plt.tight_layout()
+  \end{lstlisting}
+\end{center}
+
+\begin{center}
+  \begin{lstlisting}[language=Python, 
+  caption={Ежемесячное потребление электричества во Франции}, 
+  label={lst:time_series_example_France}]
+df = pd.read_csv('data/global_electricity_production_data.csv')
+
+France_df = df[(df['country_name'] == 'France') & 
+               (df['product'] == 'Electricity') & 
+               (df['parameter'] == 'Final Consumption (Calculated)')].copy()
+
+start_date = pd.to_datetime('01/01/2010', format='%m/%d/%Y')
+end_date   = pd.to_datetime('12/01/2023', format='%m/%d/%Y')
+
+France_df['date'] = pd.to_datetime(df['date'], format='%m/%d/%Y')
+
+France_df = France_df[(France_df['date'] >= start_date) & 
+                      (France_df['date'] <= end_date)]
+
+France_df.sort_values('date', inplace=True)
+
+# Create the plot
+fig, ax = plt.subplots(figsize=(15, 6))
+ax.plot(France_df['date'], France_df['value'], linestyle='-', color=RED)
+
+ax.set_title('France Electricity Consumption')
+
+decorate_plot(ax, 'Month', 'Value (GWh)', '')
+
+year_locator = mdates.YearLocator()
+year_formatter = mdates.DateFormatter('%Y')
+ax.xaxis.set_major_locator(year_locator)
+ax.xaxis.set_major_formatter(year_formatter)
+
+plt.savefig(f'images/time_series_example_France.png', 
+            dpi=300, 
+            transparent=True)
+
+plt.show()
+  \end{lstlisting}
+\end{center}
+
+% ------------------------------------CONTENT--------------------------------------
+
+% remove centering from sections
+\titleformat{\section}
+  {\normalfont\large\bfseries}{\thesection}{1em}{}
