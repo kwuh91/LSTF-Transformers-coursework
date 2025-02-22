@@ -11,16 +11,30 @@
   \begin{lstlisting}[language=Python]
 import pandas as pd
 
+import numpy as np
+
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import matplotlib.font_manager as fm
+from matplotlib.colors import LinearSegmentedColormap
 
-font_path = 'extra/Cinzel-VariableFont_wght.ttf'
+import seaborn as sns
+
+import statsmodels as sm
+
+font_path = '../extra/Cinzel-VariableFont_wght.ttf'
 
 cinzel_font = fm.FontProperties(fname=font_path)
 fm.fontManager.addfont(font_path)
 
 RED = '#6F1D1B'
+RICH_BLACK = '#011627'
+
+plt.rcParams.update({
+    "text.usetex": True,
+    "font.family": "serif",
+    "font.serif": ["Computer Modern Roman"],
+})
 
 def decorate_plot(ax, xname, yname, loc):
     SIZE_TICKS = 12
@@ -53,12 +67,105 @@ def decorate_plot(ax, xname, yname, loc):
 
     # Adjust layout
     plt.tight_layout()
+
+def decorate_lag_plot(ax, xname, yname, loc):
+    SIZE_TICKS = 12
+
+    # x and y axis labels
+    ax.set_xlabel(xname, fontsize=20)
+    ax.set_ylabel(yname, fontsize=20)
+
+    # Adjust tick labels size
+    ax.tick_params(axis='both', which='major', labelsize=SIZE_TICKS)
+
+    if loc:
+        ax.legend(fontsize=10, loc=loc)
+
+    plt.grid(True, linestyle='--', linewidth=0.05)
+    plt.tight_layout()
+
+def decorate_acf(ax, loc):
+    SIZE_TICKS = 24
+
+    # Eliminate upper and right axes
+    ax.spines['right'].set_color('none')
+    ax.spines['top'].set_color('none')
+
+    # Show ticks in the left and lower axes only
+    ax.xaxis.set_ticks_position('bottom')
+    ax.yaxis.set_ticks_position('left')
+
+    # Adjust the font size of the tick labels
+    ax.tick_params(axis='both', which='major', labelsize=SIZE_TICKS)
+
+    if loc:
+        plt.legend(fontsize=10, loc=loc)
+
+    # Update font settings
+    plt.rcParams.update({
+        "font.family": cinzel_font.get_name(), 
+        "font.size": 24
+    })
+
+    # Adjust layout
+    plt.tight_layout()
+
+def lag_plot(df, value_name, l=1, save=''):
+    lag_df = pd.DataFrame(df[value_name])
+    lag_df['lag'] = df[value_name].shift(l)
+
+    lag_df.dropna(inplace=True)
+
+    _, ax = plt.subplots(figsize=(7, 6))
+
+    decorate_lag_plot(ax, r'$y_t$', f'$y_{{t + {l}}}$', '')
+
+    sns.scatterplot(data=lag_df, 
+                    x=value_name,
+                    y="lag", 
+                    color=RICH_BLACK, 
+                    size=100, 
+                    legend=False, 
+                    ax=ax)
+
+    if save:
+        plt.savefig(f'../../images/{save}.png', dpi=300, transparent=True)
+
+    plt.show()
+
+def corr_matrix_plot(df, value_name, n=10, save=''):
+    lag_df = pd.DataFrame(df[value_name]).rename(columns={value_name: '$y_t$'})
+    for l in range(1, n+1):
+        lag_df[f'$y_{{t + {l}}}$'] = df[value_name].shift(l)
+
+    lag_df.dropna(inplace=True)
+
+    # Compute the correlation matrix
+    corr = lag_df.corr()
+
+    # Generate a mask for the upper triangle
+    mask = np.triu(np.ones_like(corr, dtype=bool))
+
+    # Set up the matplotlib figure
+    _, _ = plt.subplots(figsize=(11, 9))
+
+    # Generate a custom diverging colormap
+    cmap = LinearSegmentedColormap.from_list('custom_cmap', [RICH_BLACK, RED])
+
+    # Draw the heatmap with the mask and correct aspect ratio
+    sns.heatmap(corr, mask=mask, cmap=cmap, vmax=.3, center=0,
+                    square=True, linewidths=.5, cbar_kws={"shrink": .5})
+
+    if save:
+        plt.savefig(f'../images/{save}.png', dpi=300, transparent=True)
+
+    plt.show()
   \end{lstlisting}
 \end{center}
 
 \begin{center}
   \begin{lstlisting}[language=Python, 
-  caption={Ежемесячное потребление электричества во Франции}, 
+  caption={Ежемесячное потребление электричества во Франции.}, 
   label={lst:time_series_example_France}]
 df = pd.read_csv('data/global_electricity_production_data.csv')
 
@@ -89,11 +196,133 @@ year_formatter = mdates.DateFormatter('%Y')
 ax.xaxis.set_major_locator(year_locator)
 ax.xaxis.set_major_formatter(year_formatter)
 
-plt.savefig(f'images/time_series_example_France.png', 
+plt.savefig(f'../images/time_series_example_France.png', 
             dpi=300, 
             transparent=True)
 
 plt.show()
+  \end{lstlisting}
+\end{center}
+
+\begin{center}
+  \begin{lstlisting}[language=Python, 
+  caption={Месячный объём продаж красного вина в Австралии.}, 
+  label={lst:time_series_example_wine}]
+wine_df = pd.read_csv('../data/AusWineSales.csv')
+
+wine_df = wine_df[['YearMonth', 'Red']].copy()
+wine_df['YearMonth'] = pd.to_datetime(wine_df['YearMonth'], format='%Y-%m')
+
+wine_df.sort_values('YearMonth', inplace=True)
+
+# Create the plot
+fig, ax = plt.subplots(figsize=(15, 6))
+ax.plot(wine_df['YearMonth'], wine_df['Red'], linestyle='-', color=RED)
+
+ax.set_title('Australian Wine Sales')
+
+decorate_plot(ax, 'Year', 'Wine Sales (Volume)', '')
+
+plt.savefig(f'../images/time_series_example_wine.png', 
+            dpi=300, 
+            transparent=True)
+
+plt.show()
+  \end{lstlisting}
+\end{center}
+
+\begin{center}
+  \begin{lstlisting}[language=Python, 
+  caption={График задержек продаж вина в Австралии.}, 
+  label={lst:time_series_lag_plot_wine}]
+wine_df = pd.read_csv('../data/AusWineSales.csv')
+
+wine_df = wine_df[['YearMonth', 'Red']].copy()
+wine_df['YearMonth'] = pd.to_datetime(wine_df['YearMonth'], format='%Y-%m')
+
+wine_df.sort_values('YearMonth', inplace=True)
+
+lag_plot(wine_df, 'Red', 1, 'australia_wine_lag_plot')
+  \end{lstlisting}
+\end{center}
+
+\begin{center}
+  \begin{lstlisting}[language=Python, 
+  caption={График задержек белого шума.}, 
+  label={lst:time_series_lag_plot_random}]
+sample_size=1000
+random_series = pd.DataFrame(np.random.normal(size=sample_size)) 
+lag_plot(random_series, 0, l=1, save='random_series_lag_plot')
+  \end{lstlisting}
+\end{center}
+
+\begin{center}
+  \begin{lstlisting}[language=Python, 
+  caption={Еженедельный объём продаж авокадо}, 
+  label={lst:time_series_example_avocado}]
+avocado_df = pd.read_csv('../data/avocado.csv')
+  
+avocado_df = avocado_df.groupby('Date')['Total Volume'].mean().reset_index()
+
+avocado_df['Date'] = pd.to_datetime(avocado_df['Date'], format='%Y-%m-%d')
+
+avocado_df.sort_values('Date', inplace=True)
+
+fig, ax = plt.subplots(figsize=(15, 6))
+ax.plot(avocado_df['Date'], avocado_df['Total Volume'], linestyle='-', color=RED)
+
+ax.set_title('Avocado Sales')
+
+decorate_plot(ax, 'Year', 'Total Number Of Avocados Sold', '')
+
+plt.savefig(f'../images/time_series_example_avocado.png', dpi=300, transparent=True)
+
+plt.show()
+  \end{lstlisting}
+\end{center}
+
+\begin{center}
+  \begin{lstlisting}[language=Python, 
+  caption={Диагональная корреляционная матрица объема продаж авокадо.}, 
+  label={lst:correlation_matrix_avocado}]
+avocado_df = pd.read_csv('../data/avocado.csv')
+
+avocado_df = avocado_df.groupby('Date')['Total Volume'].mean().reset_index()
+
+avocado_df['Date'] = pd.to_datetime(avocado_df['Date'], format='%Y-%m-%d')
+
+avocado_df.sort_values('Date', inplace=True)
+
+corr_matrix_plot(avocado_df, 'Total Volume', 20, save='correlation_matrix_avocado')
+  \end{lstlisting}
+\end{center}
+
+\begin{center}
+  \begin{lstlisting}[language=Python, 
+  caption={Коррелограмма для объёма продаж красного вина в Австралии.}, 
+  label={lst:acf_wine}]
+wine_df = pd.read_csv('../data/AusWineSales.csv')
+
+wine_df = wine_df[['YearMonth', 'Red']].copy()
+wine_df['YearMonth'] = pd.to_datetime(wine_df['YearMonth'], format='%Y-%m')
+
+wine_df.sort_values('YearMonth', inplace=True)
+
+_, ax = plt.subplots(figsize=(20, 6))
+
+decorate_acf(ax, '')
+
+sm.graphics.tsaplots.plot_acf(wine_df['Red'], 
+                              lags=np.arange(0, 100, 1), 
+                              ax=ax, 
+                              color=RICH_BLACK, 
+                              vlines_kwargs={'colors': RICH_BLACK, 
+                                             'linewidth': 1.5});
+
+ax.set_ylim(-0.75, 1)
+ax.grid(False)
+
+plt.savefig(f'../images/acf_wine.png', dpi=300, transparent=True)
   \end{lstlisting}
 \end{center}
 
