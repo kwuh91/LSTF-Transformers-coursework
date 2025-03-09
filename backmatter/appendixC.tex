@@ -243,6 +243,205 @@ with plt.rc_context(classic_style): # use context for styles not to interfere
   \includegraphics[width=1\textwidth, height=1\textheight, keepaspectratio]{time_series_example_wine}
 \end{figure}\newpage
 
+% ---------------------------------------------Gold Price-----------------------------------------------
+
+{\noindent\hspace{-12.5pt}\normalsize\bfseries Gold Price}\vspace{-10pt}
+\begin{center}
+  \begin{lstlisting}[language=Python, 
+  caption={Стоимость золота в долларах.}, 
+  label={lst:time_series_example_gold_small}]
+# load data
+gold_df = pd.read_csv(
+    f'{DATASETS_PATH}/gold_prices_quarterly.csv',
+    parse_dates=['Date'],
+    dayfirst=False
+).set_index('Date').sort_index()
+
+# process data
+gold_df['USD'] = gold_df['USD'].str.replace(',', '').astype(float)
+
+# create plot
+with plt.rc_context(classic_style): # use context for styles not to interfere
+    fig, ax = plt.subplots(figsize=(8, 6))
+    ax.plot(gold_df.index, gold_df['USD'], color=RED, linewidth=1.5)
+
+    ax.set_title('Gold Price')
+    decorate_regular_plot(ax, 'Year', 'Gold Price (USD)')
+
+    plt.savefig(f'{IMAGES_PATH}/time_series_example_gold_small.png', 
+                dpi=300, transparent=True)
+
+    plt.show()
+  \end{lstlisting}
+\end{center}
+
+\begin{figure}[h!]
+  \centering
+  \includegraphics[width=0.5\textwidth, height=0.5\textheight, keepaspectratio]{time_series_example_gold_small}
+\end{figure}\newpage
+
+% ---------------------------------------------Dow Jones Index-----------------------------------------------
+
+{\noindent\hspace{-12.5pt}\normalsize\bfseries Dow Jones Index}\vspace{-10pt}
+\begin{center}
+  \begin{lstlisting}[language=Python, 
+  caption={Промышленный индекс Доу Джонса.}, 
+  label={lst:time_series_example_Dow_Jones_small}]
+# load data
+dowJones_df = pd.read_csv(
+    f'{DATASETS_PATH}/DJIA.csv',
+    parse_dates=['observation_date'],
+    dayfirst=False
+).set_index('observation_date').sort_index()
+
+# create plot
+with plt.rc_context(classic_style): # use context for styles not to interfere
+    fig, ax = plt.subplots(figsize=(8, 6))
+    ax.plot(dowJones_df.index, dowJones_df['DJIA'], color=RED, linewidth=1.5)
+
+    ax.set_title('Dow Jones Industrial Average')
+    decorate_regular_plot(ax, 'Year-Month', 'Index')
+
+    plt.savefig(f'{IMAGES_PATH}/time_series_example_Dow_Jones_small.png', 
+                dpi=300, transparent=True)
+
+    plt.show()
+  \end{lstlisting}
+\end{center}
+
+\begin{figure}[h!]
+  \centering
+  \includegraphics[width=0.5\textwidth, height=0.5\textheight, keepaspectratio]{time_series_example_Dow_Jones_small}
+\end{figure}\newpage
+
+% --------------------------------------Change In Dow Jones Index----------------------------------------
+
+\begin{center}
+  \begin{lstlisting}[language=Python, 
+  caption={Изменение в индексе Доу Джонса.}, 
+  label={lst:time_series_example_Dow_Jones_change_small}]
+# process data
+dowJones_df['change'] = dowJones_df['DJIA'].diff()
+
+# create plot
+with plt.rc_context(classic_style): # use context for styles not to interfere
+    fig, ax = plt.subplots(figsize=(8, 6))
+    ax.plot(dowJones_df.index, dowJones_df['change'], color=RED, linewidth=1.5)
+
+    ax.set_title('Change in Dow Jones Index')
+    decorate_regular_plot(ax, 'Year-Month', 'Index')
+
+    # plt.savefig(f'{IMAGES_PATH}/time_series_example_Dow_Jones_change_small.png', dpi=300, transparent=True)
+
+    plt.show()
+  \end{lstlisting}
+\end{center}
+
+\begin{figure}[h!]
+  \centering
+  \includegraphics[width=0.5\textwidth, height=0.5\textheight, keepaspectratio]{time_series_example_Dow_Jones_change_small}
+\end{figure}\newpage
+
+% -----------------------------------------------Random-------------------------------------------------
+
+\begin{center}
+  \begin{lstlisting}[language=Python, 
+  caption={Белый шум.}, 
+  label={lst:time_series_example_random_small}]
+# generate a normal distribution sample
+sample_size=1000
+random_series = pd.DataFrame(np.random.normal(size=sample_size)) 
+
+# create plot
+with plt.rc_context(classic_style): # use context for styles not to interfere
+    fig, ax = plt.subplots(figsize=(8, 6))
+    ax.plot(random_series, color=RED, linewidth=1.5)
+
+    ax.set_title('White Noise')
+    decorate_regular_plot(ax, '', '')
+
+    plt.savefig(f'{IMAGES_PATH}/time_series_example_random_small.png', 
+                dpi=300, transparent=True)
+
+    plt.show()
+  \end{lstlisting}
+\end{center}
+
+\begin{figure}[h!]
+  \centering
+  \includegraphics[width=0.5\textwidth, height=0.5\textheight, keepaspectratio]{time_series_example_random_small}
+\end{figure}\newpage
+
+% -----------------------------------------------Sunspot Number-------------------------------------------------
+
+\begin{center}
+  \begin{lstlisting}[language=Python, 
+  caption={Среднегодовое общее количество солнечных пятен \cite{silso}.}, 
+  label={lst:time_series_example_sunspots_small}]
+# load data
+sunspot_df = pd.read_csv(
+    f'{DATASETS_PATH}/sunspots.csv',
+    sep=';', 
+    header=None, 
+    names=['Year', 'Sunspots', 'Col3', 'Col4', 'Col5']
+).set_index('Year').sort_index()
+
+# process data
+sunspot_df = sunspot_df[sunspot_df.index <= 1880.5]
+
+# create plot
+with plt.rc_context(classic_style): # use context for styles not to interfere
+    fig, ax = plt.subplots(figsize=(8, 6))
+    ax.plot(sunspot_df.index, sunspot_df['Sunspots'], color=RED, linewidth=1.5)
+
+    ax.set_title('Yearly Mean Total Sunspot Number')
+    decorate_regular_plot(ax, 'Year', 'Sunspot number')
+
+    plt.savefig(f'{IMAGES_PATH}/time_series_example_sunspots_small.png', 
+                dpi=300, transparent=True)
+
+    plt.show()
+  \end{lstlisting}
+\end{center}
+
+\begin{figure}[h!]
+  \centering
+  \includegraphics[width=0.5\textwidth, height=0.5\textheight, keepaspectratio]{time_series_example_sunspots_small}
+\end{figure}\newpage
+
+% -----------------------------------------Airline Passengers-------------------------------------------
+
+\begin{center}
+  \begin{lstlisting}[language=Python, 
+  caption={Пассажиры авиалиний.}, 
+  label={lst:time_series_example_airline_small}]
+# load data
+airline_df = pd.read_csv(
+    f'{DATASETS_PATH}/airline-passengers.csv',
+    parse_dates=['Month'],
+    dayfirst=False
+).set_index('Month').sort_index()
+
+# create plot
+with plt.rc_context(classic_style): # use context for styles not to interfere
+    fig, ax = plt.subplots(figsize=(8, 6))
+    ax.plot(airline_df.index, airline_df['Passengers'], color=RED, linewidth=1.5)
+
+    ax.set_title('Monthly Airline Passengers (1949–1960)')
+    decorate_regular_plot(ax, 'Year', 'Number of Passengers')
+
+    plt.savefig(f'{IMAGES_PATH}/time_series_example_airline_small.png', 
+                dpi=300, transparent=True)
+
+    plt.show()
+  \end{lstlisting}
+\end{center}
+
+\begin{figure}[h!]
+  \centering
+  \includegraphics[width=0.5\textwidth, height=0.5\textheight, keepaspectratio]{time_series_example_airline_small}
+\end{figure}\newpage
+
 % -------------------------------------------------------------------------------------------------------
 % ----------------------------------------------LAG PLOTS------------------------------------------------
 % -------------------------------------------------------------------------------------------------------

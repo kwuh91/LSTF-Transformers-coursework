@@ -278,3 +278,76 @@ $t$, а по другой - значение в момент времени $t +
 Иногда бывает затруднительно определить, является ли ряд стационарным. Временные ряды с 
 непереодическими циклами (но без тренда или сезонности), например, не обязательно нестационарны, поскольку 
 нельзя заранее предсказать положение максимумов и минимумов ряда.
+
+\begin{figure}[h!]
+    \centering
+    % First Row
+    \subcaptionbox{листинг \ref{lst:time_series_example_avocado} \label{fig:time_series_example_avocado_small}}[0.3\textwidth]{\includegraphics[width=0.3\textwidth, keepaspectratio]{time_series_example_avocado_small}}
+    \hfill
+    \subcaptionbox{листинг \ref{lst:time_series_example_random_small} \label{fig:time_series_example_random_small}}[0.3\textwidth]{\includegraphics[width=0.3\textwidth, keepaspectratio]{time_series_example_random_small}}
+    \hfill
+    \subcaptionbox{листинг \ref{lst:time_series_example_wine} \label{fig:time_series_example_wine_small}}[0.3\textwidth]{\includegraphics[width=0.3\textwidth, keepaspectratio]{time_series_example_wine_small}}
+    
+    % Second Row (add vertical spacing)
+    \vspace{0.5cm}
+    \subcaptionbox{листинг \ref{lst:time_series_example_gold_small} \label{fig:time_series_example_gold_small}}[0.3\textwidth]{\includegraphics[width=0.3\textwidth, keepaspectratio]{time_series_example_gold_small}}
+    \hfill
+    \subcaptionbox{листинг \ref{lst:time_series_example_France} \label{fig:time_series_example_France_small}}[0.3\textwidth]{\includegraphics[width=0.3\textwidth, keepaspectratio]{time_series_example_France_small}}
+    \hfill
+    \subcaptionbox{листинг \ref{lst:time_series_example_Dow_Jones_small} \label{fig:time_series_example_Dow_Jones_small}}[0.3\textwidth]{\includegraphics[width=0.3\textwidth, keepaspectratio]{time_series_example_Dow_Jones_small}}
+    
+    % Third Row (add vertical spacing)
+    \vspace{0.5cm}
+    \subcaptionbox{листинг \ref{lst:time_series_example_Dow_Jones_change_small} \label{fig:time_series_example_Dow_Jones_change_small}}[0.3\textwidth]{\includegraphics[width=0.3\textwidth, keepaspectratio]{time_series_example_Dow_Jones_change_small}}
+    \hfill
+    \subcaptionbox{листинг \ref{lst:time_series_example_sunspots_small} \label{fig:time_series_example_sunspots_small}}[0.3\textwidth]{\includegraphics[width=0.3\textwidth, keepaspectratio]{time_series_example_sunspots_small}}
+    \hfill
+    \subcaptionbox{листинг \ref{lst:time_series_example_airline_small} \label{fig:time_series_example_airline_small}}[0.3\textwidth]{\includegraphics[width=0.3\textwidth, keepaspectratio]{time_series_example_airline_small}}
+
+    \caption{Примеры временных рядов}
+    \label{fig:time_series_examples}
+\end{figure}
+
+\newpage 
+В качестве примера стационарных и нестационарных можно рассмотреть временные ряды, показанные на
+рисунке 
+\ref{fig:time_series_examples}. Ряды 
+\ref{fig:time_series_example_wine_small}, 
+\ref{fig:time_series_example_gold_small}, 
+\ref{fig:time_series_example_France_small}, 
+\ref{fig:time_series_example_Dow_Jones_small}, 
+\ref{fig:time_series_example_airline_small} 
+нестационарны из-за сильно выраженного тренда. В рядах 
+\ref{fig:time_series_example_avocado_small}, 
+\ref{fig:time_series_example_wine_small}, 
+\ref{fig:time_series_example_France_small}, 
+\ref{fig:time_series_example_airline_small} 
+сильно выражена сезонность, поэтому они также не стационарны. В ряду 
+\ref{fig:time_series_example_airline_small}, 
+помимо всего прочего, меняется и дисперсия (т.е. присутствует, ещё одно свойство, не постоянное по времени). 
+Остаются три ряда, 
+\ref{fig:time_series_example_random_small}, 
+\ref{fig:time_series_example_Dow_Jones_change_small} и 
+\ref{fig:time_series_example_sunspots_small}.
+
+Первый - это просто белый шум, который по определению стационарен, второй - ежедневное изменение индекса Доу-Джонса, 
+этот ряд также считается стационарным, а третий - среднегодовое общее количество солнечных пятен. 
+
+Третий временной ряд является классическим примером нестационарного ряда с периодическим поведением. 
+Истинная стационарность требует постоянного среднего и дисперсии, что отсутствует у среднего 
+ежегодного количества солнечных пятен в связи изменяющимися амплитудами циклов. Однако некоторые 
+исследователи считают цикличность за, своего рода, \guillemotleft квази-стационарность\guillemotright \cite{Forecasting_Brockwell}.\\
+
+% Формально:
+
+% \textbf{Определение} Пусть $\left\{ X_t \right\}$ - временной ряд с 
+% $\mathcal{E}\left[ X_t^2 \right] < \infty$. \textbf{Функция среднего} от $\left\{ X_t \right\}$:
+% \begin{equation*}
+%     \mu_X(t) = \mathcal{E} \left[ X_t \right].
+% \end{equation*}
+% В свою очередь \textbf{ковариационная функция} от $\left\{ X_t \right\}$:
+% \begin{equation*}
+%     \gamma_X (r, s) = \text{Cov}(X_r, X_s) = \mathcal{E}\left[ (X_r - \mu_x (r)) 
+%     (X_s - \mu_X (s)) \right]
+% \end{equation*}
+% для всех целых чисел $r$ и $s$ \cite{Forecasting_Brockwell}.\\
