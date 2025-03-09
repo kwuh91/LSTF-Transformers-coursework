@@ -338,16 +338,47 @@ $t$, а по другой - значение в момент времени $t +
 ежегодного количества солнечных пятен в связи изменяющимися амплитудами циклов. Однако некоторые 
 исследователи считают цикличность за, своего рода, \guillemotleft квази-стационарность\guillemotright \cite{Forecasting_Brockwell}.\\
 
-% Формально:
+Формально \cite{Forecasting_Brockwell}:
 
-% \textbf{Определение} Пусть $\left\{ X_t \right\}$ - временной ряд с 
-% $\mathcal{E}\left[ X_t^2 \right] < \infty$. \textbf{Функция среднего} от $\left\{ X_t \right\}$:
-% \begin{equation*}
-%     \mu_X(t) = \mathcal{E} \left[ X_t \right].
-% \end{equation*}
-% В свою очередь \textbf{ковариационная функция} от $\left\{ X_t \right\}$:
-% \begin{equation*}
-%     \gamma_X (r, s) = \text{Cov}(X_r, X_s) = \mathcal{E}\left[ (X_r - \mu_x (r)) 
-%     (X_s - \mu_X (s)) \right]
-% \end{equation*}
-% для всех целых чисел $r$ и $s$ \cite{Forecasting_Brockwell}.\\
+\noindent\rule{\linewidth}{0.1mm}
+
+\textbf{Определение.} Пусть $\left\{ X_t \right\}$ - временной ряд с 
+$\mathbb{E}\left[ X_t^2 \right] < \infty$. Тогда \textbf{Функцией среднего} 
+от $\left\{ X_t \right\}$ называется выражение вида:
+\vspace{-10pt}
+\begin{equation*}
+    \mu_X(t) = \mathbb{E} \left[ X_t \right].
+\end{equation*}
+\vspace{-20pt}
+В свою очередь \textbf{ковариационной функцией} от $\left\{ X_t \right\}$ называется:
+\begin{equation*}
+    \gamma_X (r, s) = \text{Cov}(X_r, X_s) = \mathbb{E}\left[ (X_r - \mu_x (r)) 
+    (X_s - \mu_X (s)) \right]
+\end{equation*}
+\vspace{-20pt}
+для всех целых чисел $r$ и $s$.\\
+
+\textbf{Определение.} $\left\{ X_t \right\}$ называется (слабо) 
+стационарным если
+\begin{itemize}
+    \item $\mu_X(t)$ не зависит от времени $t$,
+\end{itemize}
+\vspace{-10pt}
+и 
+\vspace{-10pt}
+\begin{itemize}
+    \item $\gamma_X(t+h, t)$ не зависит от времени $t$ для каждого $h$.
+\end{itemize}
+\noindent\rule{\linewidth}{0.1mm}
+
+\textbf{Примечание.} Строгая стационарность временного ряда $\left\{ 
+X_t, t = 0, \pm 1, \dots \right\}$ определяется условием об одинаковом 
+совместном распределении
+$ \left( X_1, \dots, X_n \right) $ и $ \left( X_{1+h}, \dots, X_{n+h} \right) $ 
+для всех $h$ и $n > 0$ $\in \mathbb{Z}$.
+
+% Формальная проверка стационарности временных рядов
+
+% Методы приведения нестационарных временных рядов к стационарным
+
+% модели
