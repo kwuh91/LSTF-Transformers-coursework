@@ -14,6 +14,7 @@
 
 % Packages for math
 \usepackage{amsmath, amssymb}
+\usepackage{amsthm}
 
 % ==================================================
 
@@ -88,6 +89,13 @@
 % ==================================================
 
 % Extra
+
+% define definition/theorem environments
+\theoremstyle{definition}
+\newtheorem{definition}{Определение}
+
+\theoremstyle{plain} 
+\newtheorem{theorem}{Теорема}
 
 % Save the original definition of \input
 \let\originalinput\input

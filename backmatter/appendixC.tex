@@ -243,6 +243,189 @@ with plt.rc_context(classic_style): # use context for styles not to interfere
   \includegraphics[width=1\textwidth, height=1\textheight, keepaspectratio]{time_series_example_wine}
 \end{figure}\newpage
 
+% -------------------------------Wine Australi Histogram---------------------------------
+
+{\noindent\hspace{-12.5pt}\normalsize\bfseries Wine Australia Histogram}\vspace{-10pt}
+\begin{center}
+  \begin{lstlisting}[language=Python, 
+  caption={Гистограмма месячного объёма продаж красного вина в Австралии.}, 
+  label={lst:time_series_example_wine_hist}]
+# create plot
+with plt.rc_context(classic_style): # use context for styles not to interfere
+    fig, ax = plt.subplots(figsize=(8, 6))
+
+    ax.hist(wine_df['Red'], color=RED, linewidth=1.5)
+
+    ax.set_title('Australian Wine Sales')
+    decorate_regular_plot(ax, '', '')
+
+    plt.grid(linewidth=0.8, linestyle='--', color='black')
+    plt.savefig(f'{IMAGES_PATH}/time_series_example_wine_hist.png', 
+                dpi=300, transparent=True)
+
+    plt.show()
+  \end{lstlisting}
+\end{center}
+
+\begin{figure}[h!]
+  \centering
+  \includegraphics[width=0.5\textwidth, height=0.5\textheight, keepaspectratio]{time_series_example_wine_hist}
+\end{figure}\newpage
+
+% --------------------------------Wine Australia Density----------------------------------
+
+{\noindent\hspace{-12.5pt}\normalsize\bfseries Wine Australia Density}\vspace{-10pt}
+\begin{center}
+  \begin{lstlisting}[language=Python, 
+  caption={График плотности месячного объёма продаж красного вина в Австралии.}, 
+  label={lst:time_series_example_wine_density}]
+# create plot
+with plt.rc_context(classic_style): # use context for styles not to interfere
+    fig, ax = plt.subplots(figsize=(8, 6))
+
+    wine_df['Red'].plot(kind='kde', color=RED)
+
+    ax.set_title('Australian Wine Sales')
+    decorate_regular_plot(ax, '', 'Density')
+
+    plt.savefig(f'{IMAGES_PATH}/time_series_example_wine_density.png', 
+                dpi=300, transparent=True)
+
+    plt.show()
+  \end{lstlisting}
+\end{center}
+
+\begin{figure}[h!]
+  \centering
+  \includegraphics[width=0.5\textwidth, height=0.5\textheight, keepaspectratio]{time_series_example_wine_density}
+\end{figure}\newpage
+
+% --------------------------------Wine Australia Boxplot----------------------------------
+
+{\noindent\hspace{-12.5pt}\normalsize\bfseries Wine Australia Boxplot}\vspace{-10pt}
+\begin{center}
+  \begin{lstlisting}[language=Python, 
+  caption={Распределения продаж красного вина в Австралии по месяцам в период с 1980 по 1996 года.}, 
+  label={lst:time_series_example_wine_boxplot}]
+wine_df['Month'] = wine_df.index.month
+wine_df['Year'] = wine_df.index.year
+
+pivot_df = wine_df.pivot_table(index='Year', columns='Month', values='Red')
+
+with plt.rc_context(classic_style): # use context for styles not to interfere
+    fig, ax = plt.subplots(figsize=(15, 6))
+
+    # Create box plots for each month
+    pivot_df.boxplot(
+        ax=ax,
+        boxprops=dict(color=RICH_BLACK),
+        whiskerprops=dict(color=RICH_BLACK, linestyle='--'),
+        medianprops=dict(color=RED)
+    )
+    plt.xlabel('Month')
+    plt.ylabel('Wine Sales (Volume)')
+    plt.title('Monthly Box Plot')
+
+    # plt.savefig(f'{IMAGES_PATH}/time_series_example_wine_boxplot.png', 
+                  dpi=300, transparent=True)
+
+    plt.show()
+  \end{lstlisting}
+\end{center}
+
+\begin{figure}[h!]
+  \centering
+  \includegraphics[width=1\textwidth, height=1\textheight, keepaspectratio]{time_series_example_wine_boxplot}
+\end{figure}\newpage
+
+% -------------------------------American Electric Power---------------------------------
+
+{\noindent\hspace{-12.5pt}\normalsize\bfseries American Electric Power}\vspace{-10pt}
+\begin{center}
+  \begin{lstlisting}[language=Python, 
+  caption={Ежечасовое потребление электричества в Америке.}, 
+  label={lst:time_series_example_aep}]
+# load data
+aep_df = pd.read_csv(
+    f'{DATASETS_PATH}/AEP_hourly.csv',
+    parse_dates=['Datetime'],
+    dayfirst=False
+).set_index('Datetime').sort_index()
+
+# process data
+aep_df = aep_df.loc[f'2009']
+
+# create plot
+with plt.rc_context(classic_style): # use context for styles not to interfere
+    fig, ax = plt.subplots(figsize=(7, 6))
+    ax.plot(aep_df.index, aep_df['AEP_MW'], color=RED, linewidth=1.5)
+
+    ax.set_title('Hourly American Electricity Consumption')
+    decorate_regular_plot(ax, 'Year-Month', 'AEP Consumption (MW)')
+
+    plt.savefig(f'{IMAGES_PATH}/time_series_example_aep.png', 
+    dpi=300, transparent=True)
+
+    plt.show()
+  \end{lstlisting}
+\end{center}
+
+\begin{figure}[h!]
+  \centering
+  \includegraphics[width=0.5\textwidth, height=0.5\textheight, keepaspectratio]{time_series_example_aep}
+\end{figure}\newpage
+
+% -------------------------------American Electric Power Grouped---------------------------------
+
+{\noindent\hspace{-12.5pt}\normalsize\bfseries American Electric Power Grouped}\vspace{-10pt}
+\begin{center}
+  \begin{lstlisting}[language=Python, 
+  caption={Ежечасовое потребление электричества в Америке в каждом месяце.}, 
+  label={lst:time_series_example_aep_grouped}]
+  # group data by months
+  groups = aep_df.groupby(pd.Grouper(freq='ME'))
+  
+  fig, ax = plt.subplots(12, 1, figsize=(10, 10))
+  ax = ax.flatten()
+  
+  colors = list(mcolors.TABLEAU_COLORS.values())
+  
+  # extract the values from the first 12 months
+  for i, (month_date, month_data) in enumerate(groups):
+  
+      if i >= 12:
+          break
+  
+      ax[i].plot(month_data.index, month_data['AEP_MW'], 
+                                   label=month_date.strftime('%B'),
+                                   color=colors[i % 10])
+      ax[i].legend(loc='upper left')
+  
+      ax[i].xaxis.set_major_formatter(mdates.DateFormatter('%d')) 
+  
+  # set y label
+  fig.text(x=0.04, y=0.5, s='AEP consumption (MW)', 
+           rotation=90, va='center', ha='center', 
+           fontsize=12  
+  )
+  
+  # set x label
+  fig.text(x=0.5, y=0.06, s='Day of month', 
+           va='center', ha='center', fontsize=12  
+  )
+  
+  plt.savefig(f'{IMAGES_PATH}/time_series_example_aep_grouped.png', 
+              dpi=300, transparent=False)
+  
+  plt.show()
+  \end{lstlisting}
+\end{center}
+
+\begin{figure}[h!]
+  \centering
+  \includegraphics[width=0.7\textwidth, height=0.7\textheight, keepaspectratio]{time_series_example_aep_grouped}
+\end{figure}\newpage
+
 % ---------------------------------------------Gold Price-----------------------------------------------
 
 {\noindent\hspace{-12.5pt}\normalsize\bfseries Gold Price}\vspace{-10pt}
@@ -440,6 +623,35 @@ with plt.rc_context(classic_style): # use context for styles not to interfere
 \begin{figure}[h!]
   \centering
   \includegraphics[width=0.5\textwidth, height=0.5\textheight, keepaspectratio]{time_series_example_airline_small}
+\end{figure}\newpage
+
+% -----------------------------Airline Passengers Box-Cox---------------------------------
+
+\begin{center}
+  \begin{lstlisting}[language=Python, 
+  caption={Пассажиры авиалиний (после преобразования Бокса-Кокса).}, 
+  label={lst:time_series_example_airline_boxcox_small}]
+# apply box cox transformation
+airline_df_stabilize, lambda_value = sp.stats.boxcox(airline_df['Passengers'])
+
+# create plot
+with plt.rc_context(classic_style): # use context for styles not to interfere
+    fig, ax = plt.subplots(figsize=(8, 6))
+    ax.plot(airline_df.index, airline_df_stabilize, color=RED, linewidth=1.5)
+
+    ax.set_title('Stabilized Monthly Airline Passengers')
+    decorate_regular_plot(ax, 'Year', 'Number of Passengers')
+
+    plt.savefig(f'{IMAGES_PATH}/time_series_example_airline_boxcox_small.png', 
+                dpi=300, transparent=True)
+
+    plt.show()
+  \end{lstlisting}
+\end{center}
+
+\begin{figure}[h!]
+  \centering
+  \includegraphics[width=0.5\textwidth, height=0.5\textheight, keepaspectratio]{time_series_example_airline_boxcox_small}
 \end{figure}\newpage
 
 % -------------------------------------------------------------------------------------------------------
