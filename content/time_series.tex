@@ -494,7 +494,7 @@ $ \left( X_1, \dots, X_n \right) $ и $ \left( X_{1+h}, \dots, X_{n+h} \right) $
 \begin{itemize}
     \item \textbf{Тесты Дики-Фуллера} - семейство статистических тестов для проверки 
     нулевой гипотезы о наличии единичного корня (unit root) в модели авторегрессии 
-    (см. главу [\textcolor{red}{TODO}]) рассматриваемого временного ряда, и что процесс, таким образом, 
+    (см. главу [1.5.3.2]) рассматриваемого временного ряда, и что процесс, таким образом, 
     является нестационарным. Альтернативная гипотеза меняется в зависимости от 
     вариации используемого теста. На практике часто используется расширенный 
     тест Дики-Фуллера (ADF).
@@ -670,9 +670,10 @@ process) \cite{TSA_Hamilton}.
 \subsubsection{Скользящее среднее (MA)}
 
 Пусть $\left\{ \varepsilon_t \right\}$ - белый шум, удовлетворяющий условиям 
-\eqref{eq:1} - \eqref{eq:3}, то процесс:
+\eqref{eq:1} - \eqref{eq:3} (далее будем подразумевать выполнимость этих 
+условий если не оговорено иное), то процесс:
 \begin{equation*}
-    X_t = \mu + \varepsilon_t + \theta_1 \varepsilon_{t-1} + 
+    y_t = \mu + \varepsilon_t + \theta_1 \varepsilon_{t-1} + 
     \theta_2 \varepsilon_{t-2} + ... + \theta_q \varepsilon_{t-q},
 \end{equation*}
 
@@ -683,40 +684,224 @@ process) \cite{TSA_Hamilton}.
 скользящим средним (simple moving average or moving average smoothing)}.
 
 Некоторые источники опускают параметр $\mu$, так как подразумевают, что ряд 
-центрирован ($z_t = X_t - \mu$) \cite{TSA_Box}.
+центрирован ($z_t = y_t - \mu$) \cite{TSA_Box}.
 
-Нередко на практике встречаются и частные случаи данной модели \text{MA}(1) и 
+Нередко на практике встречаются частные случаи данной модели, например \text{MA}(1) и 
 \text{MA}(2):
 \begin{align*}
-    \text{MA}(1) &: X_t = \mu + \varepsilon_t + \theta_1 \varepsilon_{t-1} \\
-    \text{MA}(2) &: X_t = \mu + \varepsilon_t + \theta_1 \varepsilon_{t-1} + \theta_2 \varepsilon_{t-2}
+    \text{MA}(1) &: y_t = \mu + \varepsilon_t + \theta_1 \varepsilon_{t-1} \\
+    \text{MA}(2) &: y_t = \mu + \varepsilon_t + \theta_1 \varepsilon_{t-1} + \theta_2 \varepsilon_{t-2}
 \end{align*}
 
-\subsubsection{AR}
+\subsubsection{Авторегрессия}
+
+Концепция модели авторегрессии напрямую опирается 
+на методы классической линейной регрессии, адаптированные под 
+анализ временных последовательностей.
+
+\paragraph{Линейная регрессия}
+
+Линейная регрессия - широко используемый метод предсказания действительной 
+переменной (также называемой зависимой переменной или таргетом) $y \in \mathbb{R}$ 
+по заданному вектору действительных входных данных (также называемыми 
+независимыми переменными или признаками) $\textbf{\textit{x}} \in \mathbb{R}^n$. Результатом 
+линейной регрессии является линейная функция входных данных. Обозначим $\hat{y}$ - 
+значение $y$, предсказанное моделью. Определим резльтат модели в виде
+
+\begin{equation*}
+    \mathbb{E} \left[ y | \textit{\textbf{x}} \right] = \hat{y} = 
+    \textit{\textbf{w}}^T \textit{\textbf{x}}, \\
+\end{equation*}
+
+где $\textit{\textbf{w}} \in \mathbb{R}^n$ - вектор параметров. 
+
+В свою очередь, модель в привычном понимании:
+\begin{equation*}
+    y_i = w_0 + w_1 x_1 + w_2 x_2 + \dots + w_p x_p + \varepsilon_i
+\end{equation*}
+Подобную модель легко интерпретировать и подгонять под данные.
+
+\paragraph{Модель авторегрессии (AR)}
+
+Отличие авторегрессии от классической линейной регрессии заключается в том, 
+что в качестве \guillemotleft признаков\guillemotright {} выступают 
+собственные прошлые значения ряда.
+
+Рассмотрим процесс вида:
+\begin{equation*}
+    y_t = c + \phi_1 y_{t-1} + \phi_2 y_{t-2} + \dots + \phi_p y_{t-p} + \varepsilon_t,
+\end{equation*}
+
+где $c$ - оцениваемый параметр (в случае стационарности в результате оценки МНК равен 
+$c = \mu (\sum_{i=1}^p \phi_i)$), 
+$(\phi_1, \phi_2, ..., \phi_p)$ - весовые коэффициенты, $\varepsilon_t$ - 
+белый шум, удовлетворяющий условиям \eqref{eq:1} - \eqref{eq:3}. Подобный процесс 
+называют авторегрессионным процессом порядка $p$, или кратко, \text{AR}($p$).
+
+Аналогично MA, нередко на практике встречаются частные случаи данной модели, например \text{AR}(1) и 
+\text{AR}(2):
+\begin{align*}
+    \text{AR}(1) &: y_t = \phi_1 y_{t-1} + \varepsilon_t \\
+    \text{AR}(2) &: y_t = \phi_1 y_{t-1} + \phi_2 y_{t-2} + \varepsilon_t
+\end{align*}
+
+% \subsubsection{Обратимость MA-процессов}
+
+% Рассмотрим MA(\(q\))-процесс
+% \[
+% y_t \;=\; \mu + \varepsilon_t + \theta_1\,\varepsilon_{t-1} + \dots + \theta_q\,\varepsilon_{t-q}.
+% \]
+% Обозначим полином
+% \[
+% \Theta(z) \;=\; 1 + \theta_1 z + \dots + \theta_q z^q.
+% \]
+% Процесс называется \emph{обратимым}, если все корни уравнения \(\Theta(z)=0\) лежат за пределами единичного круга (\(|z|>1\)).  
+% В этом случае существует AR(\(\infty\))‑разложение на инновациях:
+% \[
+% y_t \;=\; \mu + \varepsilon_t + \sum_{j=1}^\infty \pi_j\,y_{t-j},
+% \]
+% где коэффициенты \(\{\pi_j\}\) находятся из развёртки \(\Theta(L)^{-1}=\sum_{j=0}^\infty\pi_j L^j\).
+
+% \subsubsection{Стационарность AR-процессов}
+
+% Рассмотрим AR(\(p\))-процесс
+% \[
+% y_t \;=\; c + \phi_1\,y_{t-1} + \dots + \phi_p\,y_{t-p} + \varepsilon_t.
+% \]
+% Обозначим полином
+% \[
+% \Phi(z) \;=\; 1 - \phi_1 z - \dots - \phi_p z^p.
+% \]
+% Процесс называется \emph{стационарным}, если все корни уравнения \(\Phi(z)=0\) лежат за пределами единичного круга (\(|z|>1\)).  
+% Тогда он имеет MA(\(\infty\))-разложение:
+% \[
+% y_t \;=\; \mu + \sum_{j=0}^\infty \psi_j\,\varepsilon_{t-j},
+% \]
+% где \(\Phi(L)^{-1}=\sum_{j=0}^\infty\psi_j L^j\).
+
+% \subsubsection{Обратимость MA-процессов}
+
+% Любой MA($q$)-процесс
+% \begin{equation*}
+%     y_t = \mu + \varepsilon_t + \theta_1 \varepsilon_{t-1} + 
+%     \theta_2 \varepsilon_{t-2} + ... + \theta_q \varepsilon_{t-q}
+% \end{equation*}
+
+% с корнями вне единичного круга можно представить в виде AR($\infty$), такие 
+% процессы называют обратимыми.
+
+% \subsubsection{Стационарность AR-процессов}
+
+% Любой AR($p$)-процесс
+% \begin{equation*}
+%     y_t = c + \phi_1 y_{t-1} + \phi_2 y_{t-2} + \dots + \phi_p y_{t-p} + \varepsilon_t
+% \end{equation*}
+
+% с корнями вне единичного круга можно представить в виде MA($\infty$), такие 
+% процессы называют стационарными.
 
 \subsubsection{ARMA}
 
+Теперь, зная, что AR отвечает за зависимость от прошлых наблюдений, а 
+MA - за зависимость от прошлых ошибок, напрашивается логичное предположение: 
+объединить эти две модели в одну. Подобная модель носит название ARMA(p,q):
+\begin{equation*}
+    y_t = c + 
+    \phi_1 y_{t-1} + \phi_2 y_{t-2} + \dots + \phi_p y_{t-p} + 
+    \theta_1 \varepsilon_{t-1} + \theta_2 \varepsilon_{t-2} + \dots + \theta_q \varepsilon_{t-q} + 
+    \varepsilon_t
+\end{equation*}
+
+где параметр $c$ связан со средним ряда $\mu$ (только в случае стационарности AR-части): 
+$\mu = \frac{c}{1 - \phi_1 - \phi_2 - \dots - \phi_p}$
+
+Иногда процесс ARMA удобно записать в виде отклонений от среднего \cite{TSA_Hamilton}:
+\begin{align*}
+    y_t - \mu &= \phi_1 (y_{t-1} - \mu) + \phi_2 (y_{t-2} - \mu) + \dots + \phi_p (y_{t-p} - \mu) + \\ 
+    &+ \theta_1 \varepsilon_{t-1} + \theta_2 \varepsilon_{t-2} + \dots + \theta_q \varepsilon_{t-q} + \\
+    &+ \varepsilon_t
+\end{align*}
+
+Главное, что нужно знать об этой модели: по теореме Вольда любой ковариационно-стационарный (слабо стационарный) 
+ряд можно представить в виде скользящего среднего бесконечного порядка MA($\infty$). При дополнительных допущениях 
+это MA($\infty$)-представление «сворачивается» в
+конечную модель ARMA(\(p,q\)) с подходящими \(p\) и \(q\).
+
 \subsubsection{ARIMA}
+
+Модели класса ARIMA являются обобщением описанного выше ARMA с добавлением идеи интегрирования. ARIMA это 
+акроним для «\textit{авторегрессионное интегрированное скользящее среднее}»\cite{Forecasting_Brownlee}:
+\begin{itemize}
+    \item \textbf{AR}: \textit{Авторегрессия}. Модель, которая использует зависимость между текущим наблюдением и его лагами. \\[-1em]
+    \item \textbf{I}: \textit{Интегрированный}. Применение дифференцирования «сырых» набюдений для выполнения условия стационарности. \\[-1em]
+    \item \textbf{MA}: \textit{Скользящее среднее}. Модель, которая использует зависимость между текущим наблюдением и остаточной ошибкой (residual error) после применения модели скользящего среднего к его лагам.
+\end{itemize}
+
+Таким образом модель ARIMA(p, d, q) - это модель ARMA(p, q) для d раз продифференцированного ряда. 
+
+Модель линейной регрессии строится путем включения указанного количества и типа членов к подготовленным, путем 
+дифференцирования, данным, чтобы удовлетворить условию стационарности. Можно «занулить» параметр если нам не 
+требуется, соответствующая ему, компонента модели. Так, мы можем настроить модель ARIMA только для выполнения 
+функции модели ARMA, или даже простой AR, I или MA модели. 
+
+% реализовать в питоне?
 
 \subsubsection{SARMA}
 
+Рассмотрим теперь сезонность. Пусть ряд имеет сезонный период длины $S$. Тогда можно взять модель 
+ARMA(p, q) и добавить к этой модели P авторегрессионных компонент, но не предыдущих, а с шагом, равным периоду 
+сезонности: 
+\begin{equation*}
+    + \Phi_S y_{t-S} + \Phi_{2S} y_{t-2S} + \dots + \Phi_{PS} y_{t-PS}
+\end{equation*}
+
+и Q компонент скользящего среднего, также с шагом, равным периоду сезонности:
+\begin{equation*}
+    + \Theta_S \varepsilon_{t-S} + \Theta_{2S} \varepsilon_{t-2S} + \dots + \Theta_{QS} \varepsilon_{t-QS}
+\end{equation*}
+
+В результате получим модель класса SARMA(p, q) $\times$ (P, Q):
+\begin{align*}
+    y_t = c &+ \phi_1 y_{t-1} + \phi_2 y_{t-2} + \dots + \phi_p y_{t-p} + \\
+    &+ \theta_1 \varepsilon_{t-1} + \theta_2 \varepsilon_{t-2} + \dots + \theta_q \varepsilon_{t-q} + \\
+    &+ \Phi_S y_{t-S} + \Phi_{2S} y_{t-2S} + \dots + \Phi_{PS} y_{t-PS} + \\
+    &+ \Theta \varepsilon_{t-S} + \Theta{2S} \varepsilon_{t-2S} + \dots + \Theta_{QS} \varepsilon_{t-QS} +\\
+    &+ \varepsilon_t 
+\end{align*}
+
+\begin{flushleft}
+    или
+\end{flushleft}
+\vspace{-5pt}
+\begin{equation*}
+    y_t = c
+    + \sum_{i=1}^p \phi_i\,y_{t-i}
+    + \sum_{j=1}^q \theta_j\,\varepsilon_{t-j}
+    + \sum_{k=1}^P \Phi_k\,y_{t-kS}
+    + \sum_{\ell=1}^Q \Theta_\ell\,\varepsilon_{t-\ell S}
+    + \varepsilon_t.
+\end{equation*}
+
+Здесь:
+\begin{itemize}
+    \item[-] \(\{\phi_i\}\) и \(\{\theta_j\}\) — параметры не-сезонных частей порядка \(p\) и \(q\);  
+    \item[-] \(\{\Phi_k\}\) и \(\{\Theta_\ell\}\) — сезонные параметры порядка \(P\) и \(Q\);  
+    \item[-] \(c\) — интерсепт (связан со средним \(\mu\) как и ранее: \(\mu = c/(1-\sum\phi_i)\) 
+    при стационарности AR-части);  
+    \item[-] \(\varepsilon_t\) — белый шум.  
+\end{itemize}
+
 \subsubsection{SARIMA}
+
+Модель SARIMA(p, d, q) $\times$ (P, D, Q) - это обобщение модели SARMA(p, q) $\times$ (P, Q) для ряда, 
+к которому d раз было применено обычное дифференцирование и D раз - сезонное. 
+Такую модель часто называют просто ARIMA:
+первая буква не пишется, но подразумевается, что сезонная компонента тоже может быть.
 
 \subsubsection{GARCH}
 
-% MA (Moving Average)
-
-% AR (Autoregressive)
-
-% ARMA (Autoregressive Moving Average)
-
-% ARIMA (Autoregressive Integrated Moving Average)
-
-% SARMA (Seasonal ARMA)
-
-% SARIMA (Seasonal ARIMA)
-
-% GARCH
+% ARCH, GARCH, ARIMAX, подбор параметров + пример для ARIMA? 
+% split code (latex) parts into different files
 
 \subsubsection{Обучение с учителем}
 
@@ -735,3 +920,10 @@ process) \cite{TSA_Hamilton}.
 % LSTM (Long Short-Term Memory) (может пока не трогать, тк это модификация RNN)
 
 % GRU (может пока не трогать, тк это модификация RNN)
+
+% TODO:
+
+% стр. 7: возможно убрать фразу: `Можно заметить сходство с корреляцией Пирсона:`, 
+% тк аквтокорреляция по сути и есть корреляция Пирсона
+
+% стр. 18
