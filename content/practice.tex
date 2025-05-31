@@ -8,14 +8,17 @@
 завоевала огромное призвание. Однако у нее есть несколько серьезных 
 проблем, которые усложняют работу с длинными временным последовательностями 
 (LSTF). Последующие ислледования предложили различные методы решения 
-данных проблем (см. Informer \cite{informer}, Performer \cite{performer}, 
+данных и связующих проблем (см. Informer \cite{informer}, Performer \cite{performer}, 
 Autoformer \cite{autoformer}, PatchTST \cite{patchTST}, TFT \cite{TFT} и др.). 
-В данной работе мы сфокусируемся на первых двух.
+В данной работе мы сфокусируемся на первых трех.
 
 В данной работе, мы предлагаем заменить слой эмбеддинга в модели 
 Informer компактным двухслойным сверточным блоком с целью повышения 
-эффективности извлечения локальных паттернов и дополнить архитектуру 
-механизмом внимания Performer для учёта глобальных зависимостей.
+эффективности извлечения локальных паттернов, внедрить модуль 
+декомпозиции ряда из Autoformer для явного разделения 
+трендовых и сезонных компонент и заменить ProbSparse-внимание 
+на линейное FAVOR+ из Performer для учёта глобальных 
+зависимостей при низких вычислительных затратах.
 
 \subsection{Используемые данные}
 
@@ -118,11 +121,15 @@ Self-attention distilling фокусируется на доминирующих
 
 \subsubsection{Performer}
 
+\subsubsection{Autoformer}
+
 \subsection{Методология}
 
 \subsubsection{Повышение эффективности извлечения локальных паттернов}
 
 \subsubsection{Заимствование механизма внимания из Performer}
+
+\subsubsection{Внедрение модуля декомпозиции ряда из Autoformer}
 
 % put here full end architecture
 
@@ -133,7 +140,7 @@ Self-attention distilling фокусируется на доминирующих
 \subsubsection{Детали}
 
 \paragraph{Training}
-\paragraph{Baselines}
+\paragraph{Baselines} % compare with everything
 \paragraph{Hyper-parameter tuning}
 \paragraph{Setup}
 \paragraph{Metrics}
