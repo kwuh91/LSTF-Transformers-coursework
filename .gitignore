@@ -8,3 +8,5 @@
 *.xdv
 *.bbl
 *.blg
+checkpoints/
+results/
