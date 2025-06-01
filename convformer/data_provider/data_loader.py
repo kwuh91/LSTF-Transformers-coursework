@@ -6,9 +6,9 @@ import pandas as pd
 
 import torch
 from torch.utils.data import Dataset, DataLoader
-# from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler
 
-from utils.tools import StandardScaler
+# from utils.tools import StandardScaler
 from utils.timefeatures import time_features
 
 import warnings
