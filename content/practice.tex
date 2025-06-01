@@ -27,7 +27,7 @@ Informer компактным двухслойным сверточным бло
 
 \subsubsection{Informer}
 
-В 2021 году, Zhou et al., опубликовали свою статью 
+В 2020 году, Zhou et al., опубликовали свою статью 
 «\textbf{Informer: Beyond Efficient Transformer for 
 Long Sequence Time-Series Forecasting}», в которой 
 представили новую, основанную на Трансформере \cite{vaswani2017attention} 
@@ -71,7 +71,7 @@ informer предлагает следующее:
     \item Измерить разброс каждого запроса $q_i$:
     \begin{equation*}
         M(\bm{q}_i, \bm{K}) = \text{max}_j \cfrac{\bm{q}_i \bm{k}_j^T}{\sqrt{d}} - 
-        \cfrac{1}{L_K} \sum_{j=1}^{L_K} \cfrac{\bm{q}_i \bm{k}_j^T}{sqrt{d}}, 
+        \cfrac{1}{L_K} \sum_{j=1}^{L_K} \cfrac{\bm{q}_i \bm{k}_j^T}{\sqrt{d}}, 
     \end{equation*}
     \item Выбрать $u$ лучших запросов, исходя из $M(\bm{q}_i, \bm{K})$, 
     где $u \propto \ln L$.
@@ -99,7 +99,7 @@ informer предлагает следующее:
 в пирамиде стэков, чьи выходы в конечном итоге конкатенируют. 
 
 Self-attention distilling фокусируется на доминирующих паттернах, 
-при этом сокращая память до $O((2-\epsilon)L \log L)$.
+при этом сокращая память до $O((2-\varepsilon)L \log L)$.
 
 \begin{figure}[h!]
     \centering
@@ -121,7 +121,144 @@ Self-attention distilling фокусируется на доминирующих
 
 \subsubsection{Performer}
 
+В 2020 году, Choromanski et al., опубликовали статью 
+«\textbf{Rethinking Attention with Performers}», в которой 
+переработали устройство механизма внимания в классических Трансформерах 
+\cite{performer}. 
+
+Как уже было сказано в главе выше, одной из ключевых проблем Трансформера 
+являеется квадратичная сложность расчета внимания: $O(L^2)$. В своей работе, 
+Choromanski et al. задались вопросом:
+\begin{center}
+    \itshape
+    Можем ли мы добиться той же гибкости глобального внимания, но за линейное время и память?
+\end{center}
+
+\paragraph{FAVOR+: Fast Attention via positive Orthogonal Random features}
+
+Вспомним, что в классическом Трансформере \cite{vaswani2017attention} 
+внимание рассчитывается по следующей формуле (без учета нормирующей константы):
+\begin{equation*}
+    \text{Attention}(Q, K, V) = \text{softmax}(QK^T)V
+\end{equation*}
+
+Заметим, что
+\begin{equation*}
+    \text{exp}(q_i^T k_j) = \kappa (q_i, k_j),
+\end{equation*}
+где $\kappa$ - softmax ядро.
+
+Согласно «\textbf{ядерному трюку}», мы можем представить $\kappa$ в виде:
+\begin{equation*}
+    \kappa(q_i, k_j) = \langle \phi(q_i), \phi(k_j) \rangle,
+\end{equation*}
+где $\phi$ - некоторое (возможно, высоко- или бесконечно-мерное) отображение признаков.
+
+Что, в свою очередь, мы можем аппроксимировать согласно \textbf{random features}:
+\begin{equation*}
+    \kappa(q_i, k_j) \approx \langle \widetilde{\phi}(q_i), \widetilde{\phi}(k_j) \rangle
+\end{equation*}
+
+Performer предлагает \textbf{FAVOR+}, объединяющий в себе две идеи:
+\begin{enumerate}
+    \item \textbf{Positive Random Features (PRF)}: Вместо классических тригонометрических random features (которые могут принимать отрицательны значения), предлагается использовать отображение, основанное на экспоненте (таким образом все зачения будут неотрицательными).
+    \item \textbf{Orthogonal Random Features (ORF)}: Выбирать случайные проекции так, чтобы они были взаимно ортогональными, а не независимыми (что уменьшает дисперсию).
+\end{enumerate}
+
+Откуда мы получаем выражение для $\phi$:
+\begin{equation*}
+    \phi(\bm{x}) = \cfrac{1}{\sqrt{m}} \ \text{exp} \left( \bm{W} \bm{x} - \frac{1}{2} || \bm{x} ||^2 \right),
+\end{equation*}
+где $\omega_i \sim \mathrm{N}(0, \bm{I}_d)$ - случайные ортогональные Гауссовы вектора 
+(строки матрицы $\bm{W} = [\omega_1^T \ \omega_2^T ... \omega_m^T]^T$), 
+$m$ - кол-во случайных признаков (размерность $\phi(\bm{x})$).
+
+Обозначив $\Phi_Q = \phi(Q) \in \mathbb{R}^{L \times m}$ и $\Phi_K = \phi(K) \in \mathbb{R}^{m \times d}$, 
+получаем:
+\begin{equation*}
+    \text{Attention}(Q,K,V) = \Phi_Q (\Phi_K^T V) \in \mathbb{R}^{L \times d},
+\end{equation*}
+где расчет $\Phi_Q$ и $\Phi_K$ занимает $O(L m d)$, 
+расчет $\Phi_K^T V$ занимает $O(L m d)$, 
+перемножение с $\Phi_Q$ занимает $O(L m d)$. 
+
+Итого имеем линейную сложность для расчета внимания (памяти также требуются только 
+эти три матрицы).
+
 \subsubsection{Autoformer}
+
+В 2021 году, Wu et al., опубликовали статью 
+«\textbf{Autoformer: Decomposition Transformers with
+Auto-Correlation for Long-Term Series Forecasting}», 
+в которой представили новую модель, основанную на Трансформере - 
+Autoformer с целью долгосрочного прогнозирования временных рядов. 
+Auformer объединяет в себе автоматизированную 
+декомпозицию временного ряда и новый механизм внимания, 
+основанный на автокорреляции \cite{autoformer}.
+
+В данной работе мы рассмотрим только часть с декомпозицией. 
+
+\paragraph{Декомпозиция временого ряда}
+
+В классическом анализе временных рядов (например 
+декомпозиция по сезонным трендам с помощью LOESS), 
+декомпозиция обычно рассматривается как процесс 
+предобработки. Часто применяется скользящее среднее 
+(здесь и далее под скользящим средним подразумеваем 
+Simple Moving Average (SMA)) для извлечения тренда 
+и сезонности из прошлого ряда, после чего остаток 
+подается на вход модели. Однако после предобработки 
+мы теряем возможность позволить модели 
+уточнить или скорректировать эту декомпозицию 
+по мере обработки более глубоких слоев.
+
+Autoformer предлагает внедрить механизм декомпозиции 
+в саму модель. Таким образом она сможет самостоятельно 
+разделять тренд и сезонные компоненты ряда в каждом слое.
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=1\textwidth, keepaspectratio]{autoformer}
+    \caption{Архитектура Autoformer-а \cite{autoformer}.}
+    \label{fig:autoformer}
+\end{figure}
+
+\newpage
+
+На каждом слое $l$ берется входная последовательность 
+(которая уже могла быть частитично обработана предыдущими слоями), 
+к которой, внутри слоя, применяется скользящее среднее, что далее 
+разделяется на две части:
+\begin{itemize}
+    \item $\text{Trend}^{(l)} = \text{SMA}(\text{Input}^{(l)})$
+    \item $\text{Seasonal}^{(l)} = \text{Input}^{(l)} - \text{Trend}^{(l)}$
+\end{itemize}
+
+После чего мы передаем $\text{Seasonal}^{(l)}$ в наш механизм 
+внимания, а $\text{Trend}^{(l)}$ направляем на вход в следующий слой 
+(via residual connection). Схематично это можно изобразить 
+следующим образом:
+
+\begin{framed}
+    \noindent Input: $\text{H}^{(l-1)}$ \\
+    
+    \noindent (1) [SeriesDecomp] $\rightarrow$ $\text{Trend}^{(l)}$, $\text{Seasonal}^{(l)}$ 
+    
+    \qquad where \vspace{-40pt} \begin{align*}
+        & \text{Trend}^{(l)} = \text{SMA}(\text{H}^{(l-1)}) \\ 
+        & \text{Seasonal}^{(l)} = \text{H}^{(l-1)} - \text{Trend}^{(l)} 
+    \end{align*}
+
+    \noindent (2) [selft-attention mechanism] on $\text{Seasonal}^{(l)}$
+
+    \qquad $\rightarrow$ $\text{Seasonal}'^{(l)}$ (+ residual connection, normalization, etc.) \\ 
+
+    \noindent (3) [Feed-Forward] on $\text{Seasonal}'^{(l)} \rightarrow \widetilde{\text{Seasonal}}^{(l)}$ \\
+    
+    \noindent (4) Re-compose $\text{H}^{(l)} = \widetilde{\text{Seasonal}}^{(l)} + \text{Trend}^{(l)}$
+\end{framed}
+
+
 
 \subsection{Методология}
 
@@ -145,6 +282,8 @@ Self-attention distilling фокусируется на доминирующих
 \paragraph{Setup}
 \paragraph{Metrics}
 \paragraph{Platform}
+
+\subsection{Ablations}
 
 \subsection{Результаты}
 
