@@ -17,9 +17,9 @@ from typing import Callable, Optional
 set constants
 """ 
 # paths
-FONT_PATH     = '../extra/Cinzel-VariableFont_wght.ttf'
-DATASETS_PATH = '../data/'
-IMAGES_PATH   = '../images/'
+FONT_PATH     = '../../extra/Cinzel-VariableFont_wght.ttf'
+DATASETS_PATH = '../../data/'
+IMAGES_PATH   = '../../images/'
 # colors
 RED        = '#6F1D1B'
 RICH_BLACK = '#011627'

@@ -258,15 +258,22 @@ Autoformer предлагает внедрить механизм декомпо
     \noindent (4) Re-compose $\text{H}^{(l)} = \widetilde{\text{Seasonal}}^{(l)} + \text{Trend}^{(l)}$
 \end{framed}
 
-
-
 \subsection{Методология}
+
+% Informer + Conv-stem + SeriesDecomp (from Autoformer) + FAVOR+ (from Performer)
 
 \subsubsection{Повышение эффективности извлечения локальных паттернов}
 
+% replace embedding layer in informer with two conv1d layers (+ batchNorm and GELU)
+
 \subsubsection{Заимствование механизма внимания из Performer}
 
+% probsparse self-attention from informer -> FAVOR+ from performer
+% leave corss-attention as is?
+
 \subsubsection{Внедрение модуля декомпозиции ряда из Autoformer}
+
+% -----
 
 % put here full end architecture
 
@@ -274,16 +281,25 @@ Autoformer предлагает внедрить механизм декомпо
 
 \subsubsection{Датасет}
 
+% Brief summary of ETT-h1 (70 k rows, 8 vars, horizons)
+% Forecasting setup (seq = 168, pred ∈ {96,192,336,720})
+
 \subsubsection{Детали}
 
-\paragraph{Training}
+\paragraph{Training} % Optimiser/LR schedule, batch size, AMP
 \paragraph{Baselines} % compare with everything
-\paragraph{Hyper-parameter tuning}
-\paragraph{Setup}
-\paragraph{Metrics}
-\paragraph{Platform}
+\paragraph{Hyper-parameter tuning} % check in informer article
+\paragraph{Setup} % check in informer article 
+\paragraph{Metrics} % MSE, RMSE, MAE? ...
+\paragraph{Platform} % my gpu
 
 \subsection{Ablations}
+
+% we get to compare (a) vanilla Informer, (b) Informer + Performer, 
+% (c) Informer + Performer + Autoformer‐decomp, and (d) a 
+% “pure Autoformer” baseline—all within the same code framework.
+
+% etc.
 
 \subsection{Результаты}
 
