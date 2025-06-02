@@ -279,7 +279,78 @@ Autoformer предлагает внедрить механизм декомпо
 
 \subsection{Эксперимент}
 
-\subsubsection{Датасет}
+\subsubsection{Датасеты}
+
+В данной работе мы проводим эксперименты на 
+n датасетах.
+
+\paragraph{ETT}
+
+\textbf{ETT} (Electricity Transformer Temperature) \cite{informer}: 
+ETT является важнейшим индикатором долгосрочного развертывания 
+электроэнергетики. Создатели Informer собрали данные за 
+2 года из двух отдельных уездов Китая. Датасет разбит на несколько 
+частей: \{ ETTm1, ETTm2 \}, где данные записаны по-минутно, а 
+также \{ ETTh1, ETTh2 \}, где данные записаны по-часово 
+для быстрой разработки. Каждый элемент данных состоит из 
+8 признаков, включая дату измерения, целевую переменную 
+"температура масла" и 6 различных видов признаков внешней силовой 
+нагрузки.  
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=1\textwidth, keepaspectratio]{ETT_OTvsDATE}
+    \caption{Общий вид «ОТ» в ETT-small \cite{informer}.}
+    \label{fig:ETT_OTvsDATE}
+\end{figure}
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=1\textwidth, keepaspectratio]{ETT_autocorrelation}
+    \caption{График автокорреляции всех переменных \cite{informer}.}
+    \label{fig:ETT_autocorrelation}
+\end{figure}
+
+\begin{table}[h!]
+    \centering
+    \begin{adjustbox}{max width=1\textwidth}
+    \setlength{\tabcolsep}{20pt} % Increase horizontal space between columns
+    \begin{tabular}{ 
+          c       % first column centered
+          !{\vrule width 1pt}  % thick vertical line
+          c c c c c c c c       % eight more centered columns
+        }
+        \toprule
+        % Header row: each entry is centered and single‐line,
+        % so we can just write them normally.
+        \makecell{\textbf{Field}} 
+          & \makecell{\textbf{date}} 
+          & \makecell{\textbf{HUFL}} 
+          & \makecell{\textbf{HULL}} 
+          & \makecell{\textbf{MUFL}} 
+          & \makecell{\textbf{MULL}} 
+          & \makecell{\textbf{LUFL}} 
+          & \makecell{\textbf{LULL}} 
+          & \makecell{\textbf{OT}} 
+        \\
+        \midrule
+        % Second row: force each word onto its own line using \makecell{…}
+        \makecell{Description} 
+          & \makecell{The\\recorded\\\textbf{date}} 
+          & \makecell{\textbf{H}igh\\\textbf{U}se\textbf{F}ul\\\textbf{L}oad} 
+          & \makecell{\textbf{H}igh\\\textbf{U}se\textbf{L}ess\\\textbf{L}oad} 
+          & \makecell{\textbf{M}iddle\\\textbf{U}se\textbf{F}ul\\\textbf{L}oad} 
+          & \makecell{\textbf{M}iddle\\\textbf{U}se\textbf{L}ess\\\textbf{L}oad} 
+          & \makecell{\textbf{L}ow\\\textbf{U}se\textbf{F}ul\\\textbf{L}oad} 
+          & \makecell{\textbf{L}ow\\\textbf{U}se\textbf{L}ess\\\textbf{L}oad} 
+          & \makecell{\textbf{O}il\\\textbf{T}emperature\\(target)} 
+        \\
+        \bottomrule
+    \end{tabular}
+    \end{adjustbox}
+    \caption{Описание каждого столбца.}
+    \label{tab:columns_description}
+\end{table}
 
 % Brief summary of ETT-h1 (70 k rows, 8 vars, horizons)
 % Forecasting setup (seq = 168, pred ∈ {96,192,336,720})
