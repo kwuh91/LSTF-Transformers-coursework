@@ -8,928 +8,981 @@
 
 Программный код, используемый в данной работе.\\
 
-{\noindent\hspace{-12.5pt}\normalsize\bfseries Import libraries}\vspace{-10pt}
-\begin{center}
-  \begin{lstlisting}[language=Python]
-import pandas as pd
-
-import numpy as np
-import statsmodels as sm
-
-import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
-import matplotlib.font_manager as fm
-from matplotlib.colors import LinearSegmentedColormap
-
-import seaborn as sns
-  \end{lstlisting}
-\end{center}
-
-{\noindent\hspace{-12.5pt}\normalsize\bfseries Set constants}\vspace{-10pt}
-\begin{center}
-  \begin{lstlisting}[language=Python]
-# paths
-FONT_PATH     = '../extra/Cinzel-VariableFont_wght.ttf'
-DATASETS_PATH = '../data'
-IMAGES_PATH   = '../images'
-# colors
-RED        = '#6F1D1B'
-RICH_BLACK = '#011627'
-# font size
-SIZE_TICKS = 12
-  \end{lstlisting}
-\end{center}
-
-{\noindent\hspace{-12.5pt}\normalsize\bfseries Load fonts}\vspace{-10pt}
-\begin{center}
-  \begin{lstlisting}[language=Python]
-cinzel_font = fm.FontProperties(fname=FONT_PATH)
-fm.fontManager.addfont(FONT_PATH)
-  \end{lstlisting}
-\end{center}
-
-{\noindent\hspace{-12.5pt}\normalsize\bfseries Define styles}\vspace{-10pt}
-\begin{center}
-  \begin{lstlisting}[language=Python]
-# regular time series plot style
-classic_style = {
-    "font.family": cinzel_font.get_name(), # apply Cinzel font
-    "font.size": 16
-}
-
-# lag plot style
-lag_plot_style = {
-    "text.usetex": True,
-    "font.family": "serif",
-    "font.serif": ["Computer Modern Roman"],
-    "axes.grid": True,
-    "grid.color": "#8D99AE",
-}
-
-# acf plot style
-acf_plot_style = {
-    "font.family": cinzel_font.get_name(), # apply Cinzel font
-    "font.size": 24
-}
-  \end{lstlisting}
-\end{center}
-
-% -------------------------------------------------------------------------------------------------------
-% --------------------------------------REGULAR TIME SERIES PLOTS----------------------------------------
-% -------------------------------------------------------------------------------------------------------
-
-\begin{center}
-  \noindent\normalsize\bfseries
-  Regular Time Series Plots
-\end{center}\vspace{-17.5pt}
-
-\begin{center}
-  \begin{lstlisting}[language=Python]
-plt.rcdefaults() # reset to defauls
-  \end{lstlisting}
-\end{center}
-
-{\noindent\hspace{-12.5pt}\normalsize\bfseries Helper functions}\vspace{-10pt}
-\begin{center}
-  \begin{lstlisting}[language=Python]
-# helper function to decorate plots
-def decorate_regular_plot(ax, xname: str, 
-                              yname: str, 
-                              loc=None) -> None:
-    SIZE_TICKS = 12
-
-    # eliminate upper and right axes
-    ax.spines['right'].set_color('none')
-    ax.spines['top'].set_color('none')
-
-    # show ticks in the left and lower axes only
-    ax.xaxis.set_ticks_position('bottom')
-    ax.yaxis.set_ticks_position('left')
-
-    # x axis name
-    ax.set_xlabel(xname, fontsize=15)
-
-    # y axis name
-    ax.set_ylabel(yname, fontsize=15)
-
-    # adjust the font size of the tick labels
-    ax.tick_params(axis='both', which='major', labelsize=SIZE_TICKS)
-
-    if loc:
-        plt.legend(fontsize=10, loc=loc)
-
-    # adjust layout
-    plt.tight_layout()
-  \end{lstlisting}
-\end{center}
-
-% -----------------------------------France Electricity Consumption-------------------------------------
-
-{\noindent\hspace{-12.5pt}\normalsize\bfseries France Electricity Consumption}\vspace{-10pt}
+{\noindent\hspace{-12.5pt}\normalsize\bfseries ConvStem}\vspace{-10pt}
 \begin{center}
   \begin{lstlisting}[language=Python, 
-  caption={Ежемесячное потребление электричества во Франции.}, 
-  label={lst:time_series_example_France}]
-# load data
-electricity_df = pd.read_csv(
-    f'{DATASETS_PATH}/global_electricity_production_data.csv',
-    parse_dates=['date'],
-    dayfirst=False
-)
+  label={lst:convstem}]
+class ConvStem(nn.Module):
+    def __init__(self, c_in, d_model):
+        super(ConvStem, self).__init__()
 
-# process data
-France_df = electricity_df[
-    (electricity_df['country_name'] == 'France') & 
-    (electricity_df['product'] == 'Electricity') & 
-    (electricity_df['parameter'] == 'Final Consumption (Calculated)')
-].copy().set_index('date').sort_index()
+        self.conv0 = nn.Conv1d(c_in, d_model, kernel_size=1)
 
-# create plot 
-with plt.rc_context(classic_style): # use context for styles not to interfere
-    fig, ax = plt.subplots(figsize=(15, 6))
-    ax.plot(France_df.index, France_df['value'], color=RED, linewidth=1.5)
+        self.conv1 = nn.Conv1d(in_channels=c_in,
+                               out_channels=d_model,
+                               kernel_size=5,
+                               padding=2)
+        self.norm1 = nn.InstanceNorm1d(num_features=d_model, affine=True)
+        self.activation1 = nn.GELU()
 
-    ax.set_title('France Electricity Consumption')
-    decorate_regular_plot(ax, 'Month', 'Value (GWh)')
+        self.conv2 = nn.Conv1d(in_channels=d_model,
+                               out_channels=d_model,
+                               kernel_size=3,
+                               padding=1,
+                               groups=d_model)
+        self.norm2 = nn.InstanceNorm1d(num_features=d_model, affine=True)
+        self.activation2 = nn.GELU()
 
-    ax.xaxis.set_major_locator(mdates.YearLocator())
-    ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y'))
+    def forward(self, x):
+        x = x.permute(0, 2, 1) 
+        res = self.conv0(x)
 
-    plt.savefig(f'{IMAGES_PATH}/time_series_example_France.png', 
-                dpi=300, transparent=True)
+        y = self.conv1(x)
+        y = self.norm1(y)
+        y = self.activation1(y)
 
-    plt.show()
+        y = self.conv2(y)
+        y = self.norm2(y)
+        y = self.activation2(y)
+
+        out = res + y
+        return out.permute(0, 2, 1)
+
+
+class ConvEmbedding(DataEmbedding):
+    def __init__(self, c_in, d_model, embed_type='fixed', freq='h', dropout=0.1):
+        super().__init__(c_in, d_model, embed_type, freq, dropout)
+        
+        # replace TokenEmbedding with ConvStem
+        self.value_embedding = ConvStem(c_in, d_model)
+
+    def forward(self, x, x_mark):
+        return super().forward(x, x_mark)
   \end{lstlisting}
 \end{center}
 
-\begin{figure}[h!]
-  \centering
-  \includegraphics[width=1\textwidth, height=1\textheight, keepaspectratio]{time_series_example_France}
-\end{figure}
+% {\noindent\hspace{-12.5pt}\normalsize\bfseries Import libraries}\vspace{-10pt}
+% \begin{center}
+%   \begin{lstlisting}[language=Python]
+% import pandas as pd
 
-% --------------------------------------------Avocado Sales----------------------------------------------
+% import numpy as np
+% import statsmodels as sm
 
-{\noindent\hspace{-12.5pt}\normalsize\bfseries Avocado Sales}\vspace{-10pt}
-\begin{center}
-  \begin{lstlisting}[language=Python, 
-  caption={Еженедельный объём продаж авокадо}, 
-  label={lst:time_series_example_avocado}]
-# load data
-avocado_df = pd.read_csv(
-    f'{DATASETS_PATH}/avocado.csv',
-    parse_dates=['Date'],
-    dayfirst=False
-)
+% import matplotlib.pyplot as plt
+% import matplotlib.dates as mdates
+% import matplotlib.font_manager as fm
+% from matplotlib.colors import LinearSegmentedColormap
 
-# process data
-avocado_df = avocado_df.groupby('Date')['Total Volume'].mean().reset_index()
-avocado_df = avocado_df.set_index('Date').sort_index()
+% import seaborn as sns
+%   \end{lstlisting}
+% \end{center}
 
-# create plot
-with plt.rc_context(classic_style): # use context for styles not to interfere
-    fig, ax = plt.subplots(figsize=(15, 6))
-    ax.plot(avocado_df.index, avocado_df['Total Volume'], 
-            color=RED, linewidth=1.5)
+% {\noindent\hspace{-12.5pt}\normalsize\bfseries Set constants}\vspace{-10pt}
+% \begin{center}
+%   \begin{lstlisting}[language=Python]
+% # paths
+% FONT_PATH     = '../extra/Cinzel-VariableFont_wght.ttf'
+% DATASETS_PATH = '../data'
+% IMAGES_PATH   = '../images'
+% # colors
+% RED        = '#6F1D1B'
+% RICH_BLACK = '#011627'
+% # font size
+% SIZE_TICKS = 12
+%   \end{lstlisting}
+% \end{center}
 
-    ax.set_title('Avocado Sales')
-    decorate_regular_plot(ax, 'Year-Month', 'Total Number Of Avocados Sold')
+% {\noindent\hspace{-12.5pt}\normalsize\bfseries Load fonts}\vspace{-10pt}
+% \begin{center}
+%   \begin{lstlisting}[language=Python]
+% cinzel_font = fm.FontProperties(fname=FONT_PATH)
+% fm.fontManager.addfont(FONT_PATH)
+%   \end{lstlisting}
+% \end{center}
 
-    plt.savefig(f'{IMAGES_PATH}/time_series_example_avocado.png', 
-                dpi=300, transparent=True)
+% {\noindent\hspace{-12.5pt}\normalsize\bfseries Define styles}\vspace{-10pt}
+% \begin{center}
+%   \begin{lstlisting}[language=Python]
+% # regular time series plot style
+% classic_style = {
+%     "font.family": cinzel_font.get_name(), # apply Cinzel font
+%     "font.size": 16
+% }
 
-    plt.show()
-  \end{lstlisting}
-\end{center}
+% # lag plot style
+% lag_plot_style = {
+%     "text.usetex": True,
+%     "font.family": "serif",
+%     "font.serif": ["Computer Modern Roman"],
+%     "axes.grid": True,
+%     "grid.color": "#8D99AE",
+% }
 
-\begin{figure}[h!]
-  \centering
-  \includegraphics[width=1\textwidth, height=1\textheight, keepaspectratio]{time_series_example_avocado}
-\end{figure}
+% # acf plot style
+% acf_plot_style = {
+%     "font.family": cinzel_font.get_name(), # apply Cinzel font
+%     "font.size": 24
+% }
+%   \end{lstlisting}
+% \end{center}
 
-% -------------------------------------------Wine Australia---------------------------------------------
+% % -------------------------------------------------------------------------------------------------------
+% % --------------------------------------REGULAR TIME SERIES PLOTS----------------------------------------
+% % -------------------------------------------------------------------------------------------------------
 
-{\noindent\hspace{-12.5pt}\normalsize\bfseries Wine Australia}\vspace{-10pt}
-\begin{center}
-  \begin{lstlisting}[language=Python, 
-  caption={Месячный объём продаж красного вина в Австралии.}, 
-  label={lst:time_series_example_wine}]
-# load data
-wine_df = pd.read_csv(
-    f'{DATASETS_PATH}/AusWineSales.csv',
-    parse_dates=['YearMonth'],
-    dayfirst=False
-).set_index('YearMonth').sort_index()
+% \begin{center}
+%   \noindent\normalsize\bfseries
+%   Regular Time Series Plots
+% \end{center}\vspace{-17.5pt}
 
-# create plot
-with plt.rc_context(classic_style): # use context for styles not to interfere
-    fig, ax = plt.subplots(figsize=(15, 6))
-    ax.plot(wine_df.index, wine_df['Red'], color=RED, linewidth=1.5)
+% \begin{center}
+%   \begin{lstlisting}[language=Python]
+% plt.rcdefaults() # reset to defauls
+%   \end{lstlisting}
+% \end{center}
 
-    ax.set_title('Australian Wine Sales')
-    decorate_regular_plot(ax, 'Year', 'Wine Sales (Volume)')
+% {\noindent\hspace{-12.5pt}\normalsize\bfseries Helper functions}\vspace{-10pt}
+% \begin{center}
+%   \begin{lstlisting}[language=Python]
+% # helper function to decorate plots
+% def decorate_regular_plot(ax, xname: str, 
+%                               yname: str, 
+%                               loc=None) -> None:
+%     SIZE_TICKS = 12
 
-    ax.xaxis.set_major_locator(mdates.YearLocator())
-    ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y'))
+%     # eliminate upper and right axes
+%     ax.spines['right'].set_color('none')
+%     ax.spines['top'].set_color('none')
 
-    plt.savefig(f'{IMAGES_PATH}/time_series_example_wine.png', 
-                dpi=300, transparent=True)
+%     # show ticks in the left and lower axes only
+%     ax.xaxis.set_ticks_position('bottom')
+%     ax.yaxis.set_ticks_position('left')
 
-    plt.show()
-  \end{lstlisting}
-\end{center}
+%     # x axis name
+%     ax.set_xlabel(xname, fontsize=15)
 
-\begin{figure}[h!]
-  \centering
-  \includegraphics[width=1\textwidth, height=1\textheight, keepaspectratio]{time_series_example_wine}
-\end{figure}\newpage
+%     # y axis name
+%     ax.set_ylabel(yname, fontsize=15)
 
-% -------------------------------Wine Australi Histogram---------------------------------
+%     # adjust the font size of the tick labels
+%     ax.tick_params(axis='both', which='major', labelsize=SIZE_TICKS)
 
-{\noindent\hspace{-12.5pt}\normalsize\bfseries Wine Australia Histogram}\vspace{-10pt}
-\begin{center}
-  \begin{lstlisting}[language=Python, 
-  caption={Гистограмма месячного объёма продаж красного вина в Австралии.}, 
-  label={lst:time_series_example_wine_hist}]
-# create plot
-with plt.rc_context(classic_style): # use context for styles not to interfere
-    fig, ax = plt.subplots(figsize=(8, 6))
+%     if loc:
+%         plt.legend(fontsize=10, loc=loc)
 
-    ax.hist(wine_df['Red'], color=RED, linewidth=1.5)
+%     # adjust layout
+%     plt.tight_layout()
+%   \end{lstlisting}
+% \end{center}
 
-    ax.set_title('Australian Wine Sales')
-    decorate_regular_plot(ax, '', '')
+% % -----------------------------------France Electricity Consumption-------------------------------------
 
-    plt.grid(linewidth=0.8, linestyle='--', color='black')
-    plt.savefig(f'{IMAGES_PATH}/time_series_example_wine_hist.png', 
-                dpi=300, transparent=True)
+% {\noindent\hspace{-12.5pt}\normalsize\bfseries France Electricity Consumption}\vspace{-10pt}
+% \begin{center}
+%   \begin{lstlisting}[language=Python, 
+%   caption={Ежемесячное потребление электричества во Франции.}, 
+%   label={lst:time_series_example_France}]
+% # load data
+% electricity_df = pd.read_csv(
+%     f'{DATASETS_PATH}/global_electricity_production_data.csv',
+%     parse_dates=['date'],
+%     dayfirst=False
+% )
 
-    plt.show()
-  \end{lstlisting}
-\end{center}
+% # process data
+% France_df = electricity_df[
+%     (electricity_df['country_name'] == 'France') & 
+%     (electricity_df['product'] == 'Electricity') & 
+%     (electricity_df['parameter'] == 'Final Consumption (Calculated)')
+% ].copy().set_index('date').sort_index()
 
-\begin{figure}[h!]
-  \centering
-  \includegraphics[width=0.5\textwidth, height=0.5\textheight, keepaspectratio]{time_series_example_wine_hist}
-\end{figure}\newpage
+% # create plot 
+% with plt.rc_context(classic_style): # use context for styles not to interfere
+%     fig, ax = plt.subplots(figsize=(15, 6))
+%     ax.plot(France_df.index, France_df['value'], color=RED, linewidth=1.5)
 
-% --------------------------------Wine Australia Density----------------------------------
+%     ax.set_title('France Electricity Consumption')
+%     decorate_regular_plot(ax, 'Month', 'Value (GWh)')
 
-{\noindent\hspace{-12.5pt}\normalsize\bfseries Wine Australia Density}\vspace{-10pt}
-\begin{center}
-  \begin{lstlisting}[language=Python, 
-  caption={График плотности месячного объёма продаж красного вина в Австралии.}, 
-  label={lst:time_series_example_wine_density}]
-# create plot
-with plt.rc_context(classic_style): # use context for styles not to interfere
-    fig, ax = plt.subplots(figsize=(8, 6))
+%     ax.xaxis.set_major_locator(mdates.YearLocator())
+%     ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y'))
 
-    wine_df['Red'].plot(kind='kde', color=RED)
+%     plt.savefig(f'{IMAGES_PATH}/time_series_example_France.png', 
+%                 dpi=300, transparent=True)
 
-    ax.set_title('Australian Wine Sales')
-    decorate_regular_plot(ax, '', 'Density')
+%     plt.show()
+%   \end{lstlisting}
+% \end{center}
 
-    plt.savefig(f'{IMAGES_PATH}/time_series_example_wine_density.png', 
-                dpi=300, transparent=True)
+% \begin{figure}[h!]
+%   \centering
+%   \includegraphics[width=1\textwidth, height=1\textheight, keepaspectratio]{time_series_example_France}
+% \end{figure}
 
-    plt.show()
-  \end{lstlisting}
-\end{center}
+% % --------------------------------------------Avocado Sales----------------------------------------------
 
-\begin{figure}[h!]
-  \centering
-  \includegraphics[width=0.5\textwidth, height=0.5\textheight, keepaspectratio]{time_series_example_wine_density}
-\end{figure}\newpage
+% {\noindent\hspace{-12.5pt}\normalsize\bfseries Avocado Sales}\vspace{-10pt}
+% \begin{center}
+%   \begin{lstlisting}[language=Python, 
+%   caption={Еженедельный объём продаж авокадо}, 
+%   label={lst:time_series_example_avocado}]
+% # load data
+% avocado_df = pd.read_csv(
+%     f'{DATASETS_PATH}/avocado.csv',
+%     parse_dates=['Date'],
+%     dayfirst=False
+% )
 
-% --------------------------------Wine Australia Boxplot----------------------------------
+% # process data
+% avocado_df = avocado_df.groupby('Date')['Total Volume'].mean().reset_index()
+% avocado_df = avocado_df.set_index('Date').sort_index()
 
-{\noindent\hspace{-12.5pt}\normalsize\bfseries Wine Australia Boxplot}\vspace{-10pt}
-\begin{center}
-  \begin{lstlisting}[language=Python, 
-  caption={Распределения продаж красного вина в Австралии по месяцам в период с 1980 по 1996 года.}, 
-  label={lst:time_series_example_wine_boxplot}]
-wine_df['Month'] = wine_df.index.month
-wine_df['Year'] = wine_df.index.year
+% # create plot
+% with plt.rc_context(classic_style): # use context for styles not to interfere
+%     fig, ax = plt.subplots(figsize=(15, 6))
+%     ax.plot(avocado_df.index, avocado_df['Total Volume'], 
+%             color=RED, linewidth=1.5)
 
-pivot_df = wine_df.pivot_table(index='Year', columns='Month', values='Red')
+%     ax.set_title('Avocado Sales')
+%     decorate_regular_plot(ax, 'Year-Month', 'Total Number Of Avocados Sold')
 
-with plt.rc_context(classic_style): # use context for styles not to interfere
-    fig, ax = plt.subplots(figsize=(15, 6))
+%     plt.savefig(f'{IMAGES_PATH}/time_series_example_avocado.png', 
+%                 dpi=300, transparent=True)
 
-    # Create box plots for each month
-    pivot_df.boxplot(
-        ax=ax,
-        boxprops=dict(color=RICH_BLACK),
-        whiskerprops=dict(color=RICH_BLACK, linestyle='--'),
-        medianprops=dict(color=RED)
-    )
-    plt.xlabel('Month')
-    plt.ylabel('Wine Sales (Volume)')
-    plt.title('Monthly Box Plot')
+%     plt.show()
+%   \end{lstlisting}
+% \end{center}
 
-    # plt.savefig(f'{IMAGES_PATH}/time_series_example_wine_boxplot.png', 
-                  dpi=300, transparent=True)
+% \begin{figure}[h!]
+%   \centering
+%   \includegraphics[width=1\textwidth, height=1\textheight, keepaspectratio]{time_series_example_avocado}
+% \end{figure}
 
-    plt.show()
-  \end{lstlisting}
-\end{center}
+% % -------------------------------------------Wine Australia---------------------------------------------
 
-\begin{figure}[h!]
-  \centering
-  \includegraphics[width=1\textwidth, height=1\textheight, keepaspectratio]{time_series_example_wine_boxplot}
-\end{figure}\newpage
+% {\noindent\hspace{-12.5pt}\normalsize\bfseries Wine Australia}\vspace{-10pt}
+% \begin{center}
+%   \begin{lstlisting}[language=Python, 
+%   caption={Месячный объём продаж красного вина в Австралии.}, 
+%   label={lst:time_series_example_wine}]
+% # load data
+% wine_df = pd.read_csv(
+%     f'{DATASETS_PATH}/AusWineSales.csv',
+%     parse_dates=['YearMonth'],
+%     dayfirst=False
+% ).set_index('YearMonth').sort_index()
 
-% -------------------------------American Electric Power---------------------------------
+% # create plot
+% with plt.rc_context(classic_style): # use context for styles not to interfere
+%     fig, ax = plt.subplots(figsize=(15, 6))
+%     ax.plot(wine_df.index, wine_df['Red'], color=RED, linewidth=1.5)
 
-{\noindent\hspace{-12.5pt}\normalsize\bfseries American Electric Power}\vspace{-10pt}
-\begin{center}
-  \begin{lstlisting}[language=Python, 
-  caption={Ежечасовое потребление электричества в Америке.}, 
-  label={lst:time_series_example_aep}]
-# load data
-aep_df = pd.read_csv(
-    f'{DATASETS_PATH}/AEP_hourly.csv',
-    parse_dates=['Datetime'],
-    dayfirst=False
-).set_index('Datetime').sort_index()
+%     ax.set_title('Australian Wine Sales')
+%     decorate_regular_plot(ax, 'Year', 'Wine Sales (Volume)')
 
-# process data
-aep_df = aep_df.loc[f'2009']
+%     ax.xaxis.set_major_locator(mdates.YearLocator())
+%     ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y'))
 
-# create plot
-with plt.rc_context(classic_style): # use context for styles not to interfere
-    fig, ax = plt.subplots(figsize=(7, 6))
-    ax.plot(aep_df.index, aep_df['AEP_MW'], color=RED, linewidth=1.5)
+%     plt.savefig(f'{IMAGES_PATH}/time_series_example_wine.png', 
+%                 dpi=300, transparent=True)
 
-    ax.set_title('Hourly American Electricity Consumption')
-    decorate_regular_plot(ax, 'Year-Month', 'AEP Consumption (MW)')
+%     plt.show()
+%   \end{lstlisting}
+% \end{center}
 
-    plt.savefig(f'{IMAGES_PATH}/time_series_example_aep.png', 
-    dpi=300, transparent=True)
+% \begin{figure}[h!]
+%   \centering
+%   \includegraphics[width=1\textwidth, height=1\textheight, keepaspectratio]{time_series_example_wine}
+% \end{figure}\newpage
 
-    plt.show()
-  \end{lstlisting}
-\end{center}
+% % -------------------------------Wine Australi Histogram---------------------------------
 
-\begin{figure}[h!]
-  \centering
-  \includegraphics[width=0.5\textwidth, height=0.5\textheight, keepaspectratio]{time_series_example_aep}
-\end{figure}\newpage
+% {\noindent\hspace{-12.5pt}\normalsize\bfseries Wine Australia Histogram}\vspace{-10pt}
+% \begin{center}
+%   \begin{lstlisting}[language=Python, 
+%   caption={Гистограмма месячного объёма продаж красного вина в Австралии.}, 
+%   label={lst:time_series_example_wine_hist}]
+% # create plot
+% with plt.rc_context(classic_style): # use context for styles not to interfere
+%     fig, ax = plt.subplots(figsize=(8, 6))
 
-% -------------------------------American Electric Power Grouped---------------------------------
+%     ax.hist(wine_df['Red'], color=RED, linewidth=1.5)
 
-{\noindent\hspace{-12.5pt}\normalsize\bfseries American Electric Power Grouped}\vspace{-10pt}
-\begin{center}
-  \begin{lstlisting}[language=Python, 
-  caption={Ежечасовое потребление электричества в Америке в каждом месяце.}, 
-  label={lst:time_series_example_aep_grouped}]
-  # group data by months
-  groups = aep_df.groupby(pd.Grouper(freq='ME'))
+%     ax.set_title('Australian Wine Sales')
+%     decorate_regular_plot(ax, '', '')
+
+%     plt.grid(linewidth=0.8, linestyle='--', color='black')
+%     plt.savefig(f'{IMAGES_PATH}/time_series_example_wine_hist.png', 
+%                 dpi=300, transparent=True)
+
+%     plt.show()
+%   \end{lstlisting}
+% \end{center}
+
+% \begin{figure}[h!]
+%   \centering
+%   \includegraphics[width=0.5\textwidth, height=0.5\textheight, keepaspectratio]{time_series_example_wine_hist}
+% \end{figure}\newpage
+
+% % --------------------------------Wine Australia Density----------------------------------
+
+% {\noindent\hspace{-12.5pt}\normalsize\bfseries Wine Australia Density}\vspace{-10pt}
+% \begin{center}
+%   \begin{lstlisting}[language=Python, 
+%   caption={График плотности месячного объёма продаж красного вина в Австралии.}, 
+%   label={lst:time_series_example_wine_density}]
+% # create plot
+% with plt.rc_context(classic_style): # use context for styles not to interfere
+%     fig, ax = plt.subplots(figsize=(8, 6))
+
+%     wine_df['Red'].plot(kind='kde', color=RED)
+
+%     ax.set_title('Australian Wine Sales')
+%     decorate_regular_plot(ax, '', 'Density')
+
+%     plt.savefig(f'{IMAGES_PATH}/time_series_example_wine_density.png', 
+%                 dpi=300, transparent=True)
+
+%     plt.show()
+%   \end{lstlisting}
+% \end{center}
+
+% \begin{figure}[h!]
+%   \centering
+%   \includegraphics[width=0.5\textwidth, height=0.5\textheight, keepaspectratio]{time_series_example_wine_density}
+% \end{figure}\newpage
+
+% % --------------------------------Wine Australia Boxplot----------------------------------
+
+% {\noindent\hspace{-12.5pt}\normalsize\bfseries Wine Australia Boxplot}\vspace{-10pt}
+% \begin{center}
+%   \begin{lstlisting}[language=Python, 
+%   caption={Распределения продаж красного вина в Австралии по месяцам в период с 1980 по 1996 года.}, 
+%   label={lst:time_series_example_wine_boxplot}]
+% wine_df['Month'] = wine_df.index.month
+% wine_df['Year'] = wine_df.index.year
+
+% pivot_df = wine_df.pivot_table(index='Year', columns='Month', values='Red')
+
+% with plt.rc_context(classic_style): # use context for styles not to interfere
+%     fig, ax = plt.subplots(figsize=(15, 6))
+
+%     # Create box plots for each month
+%     pivot_df.boxplot(
+%         ax=ax,
+%         boxprops=dict(color=RICH_BLACK),
+%         whiskerprops=dict(color=RICH_BLACK, linestyle='--'),
+%         medianprops=dict(color=RED)
+%     )
+%     plt.xlabel('Month')
+%     plt.ylabel('Wine Sales (Volume)')
+%     plt.title('Monthly Box Plot')
+
+%     # plt.savefig(f'{IMAGES_PATH}/time_series_example_wine_boxplot.png', 
+%                   dpi=300, transparent=True)
+
+%     plt.show()
+%   \end{lstlisting}
+% \end{center}
+
+% \begin{figure}[h!]
+%   \centering
+%   \includegraphics[width=1\textwidth, height=1\textheight, keepaspectratio]{time_series_example_wine_boxplot}
+% \end{figure}\newpage
+
+% % -------------------------------American Electric Power---------------------------------
+
+% {\noindent\hspace{-12.5pt}\normalsize\bfseries American Electric Power}\vspace{-10pt}
+% \begin{center}
+%   \begin{lstlisting}[language=Python, 
+%   caption={Ежечасовое потребление электричества в Америке.}, 
+%   label={lst:time_series_example_aep}]
+% # load data
+% aep_df = pd.read_csv(
+%     f'{DATASETS_PATH}/AEP_hourly.csv',
+%     parse_dates=['Datetime'],
+%     dayfirst=False
+% ).set_index('Datetime').sort_index()
+
+% # process data
+% aep_df = aep_df.loc[f'2009']
+
+% # create plot
+% with plt.rc_context(classic_style): # use context for styles not to interfere
+%     fig, ax = plt.subplots(figsize=(7, 6))
+%     ax.plot(aep_df.index, aep_df['AEP_MW'], color=RED, linewidth=1.5)
+
+%     ax.set_title('Hourly American Electricity Consumption')
+%     decorate_regular_plot(ax, 'Year-Month', 'AEP Consumption (MW)')
+
+%     plt.savefig(f'{IMAGES_PATH}/time_series_example_aep.png', 
+%     dpi=300, transparent=True)
+
+%     plt.show()
+%   \end{lstlisting}
+% \end{center}
+
+% \begin{figure}[h!]
+%   \centering
+%   \includegraphics[width=0.5\textwidth, height=0.5\textheight, keepaspectratio]{time_series_example_aep}
+% \end{figure}\newpage
+
+% % -------------------------------American Electric Power Grouped---------------------------------
+
+% {\noindent\hspace{-12.5pt}\normalsize\bfseries American Electric Power Grouped}\vspace{-10pt}
+% \begin{center}
+%   \begin{lstlisting}[language=Python, 
+%   caption={Ежечасовое потребление электричества в Америке в каждом месяце.}, 
+%   label={lst:time_series_example_aep_grouped}]
+%   # group data by months
+%   groups = aep_df.groupby(pd.Grouper(freq='ME'))
   
-  fig, ax = plt.subplots(12, 1, figsize=(10, 10))
-  ax = ax.flatten()
+%   fig, ax = plt.subplots(12, 1, figsize=(10, 10))
+%   ax = ax.flatten()
   
-  colors = list(mcolors.TABLEAU_COLORS.values())
+%   colors = list(mcolors.TABLEAU_COLORS.values())
   
-  # extract the values from the first 12 months
-  for i, (month_date, month_data) in enumerate(groups):
+%   # extract the values from the first 12 months
+%   for i, (month_date, month_data) in enumerate(groups):
   
-      if i >= 12:
-          break
+%       if i >= 12:
+%           break
   
-      ax[i].plot(month_data.index, month_data['AEP_MW'], 
-                                   label=month_date.strftime('%B'),
-                                   color=colors[i % 10])
-      ax[i].legend(loc='upper left')
+%       ax[i].plot(month_data.index, month_data['AEP_MW'], 
+%                                    label=month_date.strftime('%B'),
+%                                    color=colors[i % 10])
+%       ax[i].legend(loc='upper left')
   
-      ax[i].xaxis.set_major_formatter(mdates.DateFormatter('%d')) 
+%       ax[i].xaxis.set_major_formatter(mdates.DateFormatter('%d')) 
   
-  # set y label
-  fig.text(x=0.04, y=0.5, s='AEP consumption (MW)', 
-           rotation=90, va='center', ha='center', 
-           fontsize=12  
-  )
+%   # set y label
+%   fig.text(x=0.04, y=0.5, s='AEP consumption (MW)', 
+%            rotation=90, va='center', ha='center', 
+%            fontsize=12  
+%   )
   
-  # set x label
-  fig.text(x=0.5, y=0.06, s='Day of month', 
-           va='center', ha='center', fontsize=12  
-  )
+%   # set x label
+%   fig.text(x=0.5, y=0.06, s='Day of month', 
+%            va='center', ha='center', fontsize=12  
+%   )
   
-  plt.savefig(f'{IMAGES_PATH}/time_series_example_aep_grouped.png', 
-              dpi=300, transparent=False)
+%   plt.savefig(f'{IMAGES_PATH}/time_series_example_aep_grouped.png', 
+%               dpi=300, transparent=False)
   
-  plt.show()
-  \end{lstlisting}
-\end{center}
-
-\begin{figure}[h!]
-  \centering
-  \includegraphics[width=0.7\textwidth, height=0.7\textheight, keepaspectratio]{time_series_example_aep_grouped}
-\end{figure}\newpage
-
-% ---------------------------------------------Gold Price-----------------------------------------------
-
-{\noindent\hspace{-12.5pt}\normalsize\bfseries Gold Price}\vspace{-10pt}
-\begin{center}
-  \begin{lstlisting}[language=Python, 
-  caption={Стоимость золота в долларах.}, 
-  label={lst:time_series_example_gold_small}]
-# load data
-gold_df = pd.read_csv(
-    f'{DATASETS_PATH}/gold_prices_quarterly.csv',
-    parse_dates=['Date'],
-    dayfirst=False
-).set_index('Date').sort_index()
-
-# process data
-gold_df['USD'] = gold_df['USD'].str.replace(',', '').astype(float)
-
-# create plot
-with plt.rc_context(classic_style): # use context for styles not to interfere
-    fig, ax = plt.subplots(figsize=(8, 6))
-    ax.plot(gold_df.index, gold_df['USD'], color=RED, linewidth=1.5)
-
-    ax.set_title('Gold Price')
-    decorate_regular_plot(ax, 'Year', 'Gold Price (USD)')
-
-    plt.savefig(f'{IMAGES_PATH}/time_series_example_gold_small.png', 
-                dpi=300, transparent=True)
-
-    plt.show()
-  \end{lstlisting}
-\end{center}
-
-\begin{figure}[h!]
-  \centering
-  \includegraphics[width=0.5\textwidth, height=0.5\textheight, keepaspectratio]{time_series_example_gold_small}
-\end{figure}\newpage
-
-% ---------------------------------------------Dow Jones Index-----------------------------------------------
-
-{\noindent\hspace{-12.5pt}\normalsize\bfseries Dow Jones Index}\vspace{-10pt}
-\begin{center}
-  \begin{lstlisting}[language=Python, 
-  caption={Промышленный индекс Доу Джонса.}, 
-  label={lst:time_series_example_Dow_Jones_small}]
-# load data
-dowJones_df = pd.read_csv(
-    f'{DATASETS_PATH}/DJIA.csv',
-    parse_dates=['observation_date'],
-    dayfirst=False
-).set_index('observation_date').sort_index()
-
-# create plot
-with plt.rc_context(classic_style): # use context for styles not to interfere
-    fig, ax = plt.subplots(figsize=(8, 6))
-    ax.plot(dowJones_df.index, dowJones_df['DJIA'], color=RED, linewidth=1.5)
-
-    ax.set_title('Dow Jones Industrial Average')
-    decorate_regular_plot(ax, 'Year-Month', 'Index')
-
-    plt.savefig(f'{IMAGES_PATH}/time_series_example_Dow_Jones_small.png', 
-                dpi=300, transparent=True)
-
-    plt.show()
-  \end{lstlisting}
-\end{center}
-
-\begin{figure}[h!]
-  \centering
-  \includegraphics[width=0.5\textwidth, height=0.5\textheight, keepaspectratio]{time_series_example_Dow_Jones_small}
-\end{figure}\newpage
-
-% --------------------------------------Change In Dow Jones Index----------------------------------------
-
-\begin{center}
-  \begin{lstlisting}[language=Python, 
-  caption={Изменение в индексе Доу Джонса.}, 
-  label={lst:time_series_example_Dow_Jones_change_small}]
-# process data
-dowJones_df['change'] = dowJones_df['DJIA'].diff()
-
-# create plot
-with plt.rc_context(classic_style): # use context for styles not to interfere
-    fig, ax = plt.subplots(figsize=(8, 6))
-    ax.plot(dowJones_df.index, dowJones_df['change'], color=RED, linewidth=1.5)
-
-    ax.set_title('Change in Dow Jones Index')
-    decorate_regular_plot(ax, 'Year-Month', 'Index')
-
-    # plt.savefig(f'{IMAGES_PATH}/time_series_example_Dow_Jones_change_small.png', dpi=300, transparent=True)
-
-    plt.show()
-  \end{lstlisting}
-\end{center}
-
-\begin{figure}[h!]
-  \centering
-  \includegraphics[width=0.5\textwidth, height=0.5\textheight, keepaspectratio]{time_series_example_Dow_Jones_change_small}
-\end{figure}\newpage
-
-% -----------------------------------------------Random-------------------------------------------------
-
-\begin{center}
-  \begin{lstlisting}[language=Python, 
-  caption={Белый шум.}, 
-  label={lst:time_series_example_random_small}]
-# generate a normal distribution sample
-sample_size=1000
-random_series = pd.DataFrame(np.random.normal(size=sample_size)) 
-
-# create plot
-with plt.rc_context(classic_style): # use context for styles not to interfere
-    fig, ax = plt.subplots(figsize=(8, 6))
-    ax.plot(random_series, color=RED, linewidth=1.5)
-
-    ax.set_title('White Noise')
-    decorate_regular_plot(ax, '', '')
-
-    plt.savefig(f'{IMAGES_PATH}/time_series_example_random_small.png', 
-                dpi=300, transparent=True)
-
-    plt.show()
-  \end{lstlisting}
-\end{center}
-
-\begin{figure}[h!]
-  \centering
-  \includegraphics[width=0.5\textwidth, height=0.5\textheight, keepaspectratio]{time_series_example_random_small}
-\end{figure}\newpage
-
-% -----------------------------------------------Sunspot Number-------------------------------------------------
-
-\begin{center}
-  \begin{lstlisting}[language=Python, 
-  caption={Среднегодовое общее количество солнечных пятен \cite{silso}.}, 
-  label={lst:time_series_example_sunspots_small}]
-# load data
-sunspot_df = pd.read_csv(
-    f'{DATASETS_PATH}/sunspots.csv',
-    sep=';', 
-    header=None, 
-    names=['Year', 'Sunspots', 'Col3', 'Col4', 'Col5']
-).set_index('Year').sort_index()
-
-# process data
-sunspot_df = sunspot_df[sunspot_df.index <= 1880.5]
-
-# create plot
-with plt.rc_context(classic_style): # use context for styles not to interfere
-    fig, ax = plt.subplots(figsize=(8, 6))
-    ax.plot(sunspot_df.index, sunspot_df['Sunspots'], color=RED, linewidth=1.5)
-
-    ax.set_title('Yearly Mean Total Sunspot Number')
-    decorate_regular_plot(ax, 'Year', 'Sunspot number')
-
-    plt.savefig(f'{IMAGES_PATH}/time_series_example_sunspots_small.png', 
-                dpi=300, transparent=True)
-
-    plt.show()
-  \end{lstlisting}
-\end{center}
-
-\begin{figure}[h!]
-  \centering
-  \includegraphics[width=0.5\textwidth, height=0.5\textheight, keepaspectratio]{time_series_example_sunspots_small}
-\end{figure}\newpage
-
-% -----------------------------------------Airline Passengers-------------------------------------------
-
-\begin{center}
-  \begin{lstlisting}[language=Python, 
-  caption={Пассажиры авиалиний.}, 
-  label={lst:time_series_example_airline_small}]
-# load data
-airline_df = pd.read_csv(
-    f'{DATASETS_PATH}/airline-passengers.csv',
-    parse_dates=['Month'],
-    dayfirst=False
-).set_index('Month').sort_index()
-
-# create plot
-with plt.rc_context(classic_style): # use context for styles not to interfere
-    fig, ax = plt.subplots(figsize=(8, 6))
-    ax.plot(airline_df.index, airline_df['Passengers'], color=RED, linewidth=1.5)
-
-    ax.set_title('Monthly Airline Passengers (1949–1960)')
-    decorate_regular_plot(ax, 'Year', 'Number of Passengers')
-
-    plt.savefig(f'{IMAGES_PATH}/time_series_example_airline_small.png', 
-                dpi=300, transparent=True)
-
-    plt.show()
-  \end{lstlisting}
-\end{center}
-
-\begin{figure}[h!]
-  \centering
-  \includegraphics[width=0.5\textwidth, height=0.5\textheight, keepaspectratio]{time_series_example_airline_small}
-\end{figure}\newpage
-
-% -----------------------------Airline Passengers Box-Cox---------------------------------
-
-\begin{center}
-  \begin{lstlisting}[language=Python, 
-  caption={Пассажиры авиалиний (после преобразования Бокса-Кокса).}, 
-  label={lst:time_series_example_airline_boxcox_small}]
-# apply box cox transformation
-airline_df_stabilize, lambda_value = sp.stats.boxcox(airline_df['Passengers'])
-
-# create plot
-with plt.rc_context(classic_style): # use context for styles not to interfere
-    fig, ax = plt.subplots(figsize=(8, 6))
-    ax.plot(airline_df.index, airline_df_stabilize, color=RED, linewidth=1.5)
-
-    ax.set_title('Stabilized Monthly Airline Passengers')
-    decorate_regular_plot(ax, 'Year', 'Number of Passengers')
-
-    plt.savefig(f'{IMAGES_PATH}/time_series_example_airline_boxcox_small.png', 
-                dpi=300, transparent=True)
-
-    plt.show()
-  \end{lstlisting}
-\end{center}
-
-\begin{figure}[h!]
-  \centering
-  \includegraphics[width=0.5\textwidth, height=0.5\textheight, keepaspectratio]{time_series_example_airline_boxcox_small}
-\end{figure}\newpage
-
-% -------------------------------------------------------------------------------------------------------
-% ----------------------------------------------LAG PLOTS------------------------------------------------
-% -------------------------------------------------------------------------------------------------------
-
-\begin{center}
-  \noindent\normalsize\bfseries
-  Lag Plots
-\end{center}\vspace{-17.5pt}
-
-\begin{center}
-  \begin{lstlisting}[language=Python]
-plt.rcdefaults() # reset to defauls
-  \end{lstlisting}
-\end{center}
-
-{\noindent\hspace{-12.5pt}\normalsize\bfseries Helper functions}\vspace{-10pt}
-\begin{center}
-  \begin{lstlisting}[language=Python]
-# helper function to decorate plots
-def decorate_lag_plot(ax, xname: str, 
-                          yname: str, 
-                          loc=None) -> None:
-    SIZE_TICKS = 12
-
-    # x and y axis labels
-    ax.set_xlabel(xname, fontsize=20)
-    ax.set_ylabel(yname, fontsize=20)
-
-    # adjust tick labels size
-    ax.tick_params(axis='both', which='major', labelsize=SIZE_TICKS)
-
-    if loc:
-        ax.legend(fontsize=10, loc=loc)
-
-    plt.grid(True, linestyle='--', linewidth=0.05)
-    plt.tight_layout()
-
-# main function for creating lag plots
-def lag_plot(df: pd.DataFrame, 
-             value_name: str, 
-             l: int=1, 
-             file_name: str=None) -> None:
-    lag_df = pd.DataFrame(df[value_name])
-    lag_df['lag'] = df[value_name].shift(l)
-
-    lag_df.dropna(inplace=True)
-
-    _, ax = plt.subplots(figsize=(7, 6))
-
-    decorate_lag_plot(ax, r'$y_t$', f'$y_{{t + {l}}}$', '')
-
-    sns.scatterplot(data=lag_df, 
-                    x=value_name,
-                    y="lag", 
-                    color=RICH_BLACK, 
-                    size=100, 
-                    legend=False, 
-                    ax=ax)
-
-    if file_name:
-        plt.savefig(f'{IMAGES_PATH}/{file_name}.png', 
-                    dpi=300, transparent=True)
-
-    plt.show()
-  \end{lstlisting}
-\end{center}
-
-% -------------------------------------------Wine Australia---------------------------------------------
-
-{\noindent\hspace{-12.5pt}\normalsize\bfseries Wine Australia}\vspace{-10pt}
-\begin{center}
-  \begin{lstlisting}[language=Python, 
-  caption={График задержек продаж вина в Австралии.}, 
-  label={lst:time_series_lag_plot_wine}]
-# load data
-wine_df = pd.read_csv(
-    f'{DATASETS_PATH}/AusWineSales.csv',
-    parse_dates=['YearMonth'],
-    dayfirst=False
-).set_index('YearMonth').sort_index()
-
-# create plot
-with plt.rc_context(lag_plot_style): # use context for styles not to interfere
-    lag_plot(wine_df, 'Red', l=1, file_name=None)
-  \end{lstlisting}
-\end{center}
-
-\begin{figure}[h!]
-  \centering
-  \includegraphics[width=0.6\textwidth, height=0.6\textheight, keepaspectratio]{australia_wine_lag_plot}
-\end{figure}\newpage
-
-% -----------------------------------------------Random-------------------------------------------------
-
-{\noindent\hspace{-12.5pt}\normalsize\bfseries Random}\vspace{-10pt}
-\begin{center}
-  \begin{lstlisting}[language=Python, 
-  caption={График задержек белого шума.}, 
-  label={lst:time_series_lag_plot_random}]
-# generate a normal distribution sample
-sample_size=1000
-random_series = pd.DataFrame(np.random.normal(size=sample_size)) 
-
-# create plot
-with plt.rc_context(lag_plot_style): # use context for styles not to interfere
-    lag_plot(random_series, 0, l=1, file_name=None)
-  \end{lstlisting}
-\end{center}
-
-\begin{figure}[h!]
-  \centering
-  \includegraphics[width=0.6\textwidth, height=0.6\textheight, keepaspectratio]{random_series_lag_plot}
-\end{figure}\newpage
-
-% ------------------------------------------------------------------------------------------------------
-% ----------------------------------------CORRELATION MATRICES------------------------------------------
-% ------------------------------------------------------------------------------------------------------
-
-\begin{center}
-  \noindent\normalsize\bfseries
-  Correlation Matrices
-\end{center}\vspace{-17.5pt}
-
-\begin{center}
-  \begin{lstlisting}[language=Python]
-plt.rcdefaults() # reset to defauls
-  \end{lstlisting}
-\end{center}
-
-{\noindent\hspace{-12.5pt}\normalsize\bfseries Helper functions}\vspace{-10pt}
-\begin{center}
-  \begin{lstlisting}[language=Python]
-# main function for creating correlation matrix plots
-def corr_matrix_plot(df: pd.DataFrame, value_name: str, 
-                                       n: int=10, 
-                                       file_name: str=None) -> None:
-    lag_df = pd.DataFrame(df[value_name]).rename(columns={value_name: '$y_t$'})
-    for l in range(1, n+1):
-        lag_df[f'$y_{{t + {l}}}$'] = df[value_name].shift(l)
-
-    lag_df.dropna(inplace=True)
-
-    # compute the correlation matrix
-    corr = lag_df.corr()
-
-    # generate a mask for the upper triangle
-    mask = np.triu(np.ones_like(corr, dtype=bool))
-
-    # set up the matplotlib figure
-    _, _ = plt.subplots(figsize=(11, 9))
-
-    # generate a custom diverging colormap
-    cmap = LinearSegmentedColormap.from_list('custom_cmap', [RICH_BLACK, RED])
-
-    # draw the heatmap with the mask and correct aspect ratio
-    sns.heatmap(corr, mask=mask, cmap=cmap, vmax=.3, center=0,
-                      square=True, linewidths=.5, cbar_kws={"shrink": .5})
-
-    if file_name:
-        plt.savefig(f'{IMAGES_PATH}/{file_name}.png', 
-                    dpi=300, transparent=True)
-
-    plt.show()
-  \end{lstlisting}
-\end{center}
-
-% --------------------------------------------Avocado Sales----------------------------------------------
-
-{\noindent\hspace{-12.5pt}\normalsize\bfseries Avocado Sales}\vspace{-10pt}
-\begin{center}
-  \begin{lstlisting}[language=Python, 
-  caption={Диагональная корреляционная матрица объема продаж авокадо.}, 
-  label={lst:correlation_matrix_avocado}]
-# load data
-avocado_df = pd.read_csv(
-    f'{DATASETS_PATH}/avocado.csv',
-    parse_dates=['Date'],
-    dayfirst=False
-).set_index('Date').sort_index()
-
-# process data
-avocado_df = avocado_df.groupby('Date')['Total Volume'].mean().reset_index()
-avocado_df = avocado_df.set_index('Date').sort_index()
-
-# create plot
-corr_matrix_plot(avocado_df, 'Total Volume', n=20, file_name=None)
-  \end{lstlisting}
-\end{center}
-
-\begin{figure}[h!]
-  \centering
-  \includegraphics[width=0.7\textwidth, height=0.7\textheight, keepaspectratio]{correlation_matrix_avocado}
-\end{figure}
-
-% ------------------------------------------------------------------------------------------------------
-% -----------------------------------AUTOCORRELATION FUNCTION (ACF)-------------------------------------
-% ------------------------------------------------------------------------------------------------------
-
-\begin{center}
-  \noindent\normalsize\bfseries
-  Autocorrelation Function (ACF)
-\end{center}\vspace{-17.5pt}
-
-\begin{center}
-  \begin{lstlisting}[language=Python]
-plt.rcdefaults() # reset to defauls
-  \end{lstlisting}
-\end{center}
-
-{\noindent\hspace{-12.5pt}\normalsize\bfseries Helper functions}\vspace{-10pt}
-\begin{center}
-  \begin{lstlisting}[language=Python]
-# helper function to decorate plots
-def decorate_acf(ax, loc=None) -> None:
-    SIZE_TICKS = 24
-
-    # Eliminate upper and right axes
-    ax.spines['right'].set_color('none')
-    ax.spines['top'].set_color('none')
-
-    # Show ticks in the left and lower axes only
-    ax.xaxis.set_ticks_position('bottom')
-    ax.yaxis.set_ticks_position('left')
-
-    # Adjust the font size of the tick labels
-    ax.tick_params(axis='both', which='major', labelsize=SIZE_TICKS)
-
-    if loc:
-        plt.legend(fontsize=10, loc=loc)
-
-    # Adjust layout
-    plt.tight_layout()
-  \end{lstlisting}
-\end{center}
-
-% -------------------------------------------Wine Australia---------------------------------------------
-
-{\noindent\hspace{-12.5pt}\normalsize\bfseries Wine Australia}\vspace{-10pt}
-\begin{center}
-  \begin{lstlisting}[language=Python, 
-  caption={Коррелограмма для объёма продаж красного вина в Австралии.}, 
-  label={lst:acf_wine}]
-# load data
-wine_df = pd.read_csv(
-    f'{DATASETS_PATH}/AusWineSales.csv',
-    parse_dates=['YearMonth'],
-    dayfirst=False
-).set_index('YearMonth').sort_index()
-
-# create plot
-with plt.rc_context(acf_plot_style): # use context for styles not to interfere
-    _, ax = plt.subplots(figsize=(20, 6))
-
-    decorate_acf(ax)
-
-    sm.graphics.tsaplots.plot_acf(wine_df['Red'], 
-                                  lags=np.arange(0, 100, 1), 
-                                  ax=ax, 
-                                  color=RICH_BLACK, 
-                                  vlines_kwargs={'colors': RICH_BLACK, 
-                                                 'linewidth': 1.5});
-
-    ax.set_ylim(-0.75, 1)
-    ax.grid(False)
-
-    plt.savefig(f'{IMAGES_PATH}/acf_wine.png', 
-                dpi=300, transparent=True)
-
-    plt.show();
-  \end{lstlisting}
-\end{center}
-
-\begin{figure}[h!]
-  \centering
-  \includegraphics[width=1\textwidth, height=1\textheight, keepaspectratio]{acf_wine}
-\end{figure}
+%   plt.show()
+%   \end{lstlisting}
+% \end{center}
+
+% \begin{figure}[h!]
+%   \centering
+%   \includegraphics[width=0.7\textwidth, height=0.7\textheight, keepaspectratio]{time_series_example_aep_grouped}
+% \end{figure}\newpage
+
+% % ---------------------------------------------Gold Price-----------------------------------------------
+
+% {\noindent\hspace{-12.5pt}\normalsize\bfseries Gold Price}\vspace{-10pt}
+% \begin{center}
+%   \begin{lstlisting}[language=Python, 
+%   caption={Стоимость золота в долларах.}, 
+%   label={lst:time_series_example_gold_small}]
+% # load data
+% gold_df = pd.read_csv(
+%     f'{DATASETS_PATH}/gold_prices_quarterly.csv',
+%     parse_dates=['Date'],
+%     dayfirst=False
+% ).set_index('Date').sort_index()
+
+% # process data
+% gold_df['USD'] = gold_df['USD'].str.replace(',', '').astype(float)
+
+% # create plot
+% with plt.rc_context(classic_style): # use context for styles not to interfere
+%     fig, ax = plt.subplots(figsize=(8, 6))
+%     ax.plot(gold_df.index, gold_df['USD'], color=RED, linewidth=1.5)
+
+%     ax.set_title('Gold Price')
+%     decorate_regular_plot(ax, 'Year', 'Gold Price (USD)')
+
+%     plt.savefig(f'{IMAGES_PATH}/time_series_example_gold_small.png', 
+%                 dpi=300, transparent=True)
+
+%     plt.show()
+%   \end{lstlisting}
+% \end{center}
+
+% \begin{figure}[h!]
+%   \centering
+%   \includegraphics[width=0.5\textwidth, height=0.5\textheight, keepaspectratio]{time_series_example_gold_small}
+% \end{figure}\newpage
+
+% % ---------------------------------------------Dow Jones Index-----------------------------------------------
+
+% {\noindent\hspace{-12.5pt}\normalsize\bfseries Dow Jones Index}\vspace{-10pt}
+% \begin{center}
+%   \begin{lstlisting}[language=Python, 
+%   caption={Промышленный индекс Доу Джонса.}, 
+%   label={lst:time_series_example_Dow_Jones_small}]
+% # load data
+% dowJones_df = pd.read_csv(
+%     f'{DATASETS_PATH}/DJIA.csv',
+%     parse_dates=['observation_date'],
+%     dayfirst=False
+% ).set_index('observation_date').sort_index()
+
+% # create plot
+% with plt.rc_context(classic_style): # use context for styles not to interfere
+%     fig, ax = plt.subplots(figsize=(8, 6))
+%     ax.plot(dowJones_df.index, dowJones_df['DJIA'], color=RED, linewidth=1.5)
+
+%     ax.set_title('Dow Jones Industrial Average')
+%     decorate_regular_plot(ax, 'Year-Month', 'Index')
+
+%     plt.savefig(f'{IMAGES_PATH}/time_series_example_Dow_Jones_small.png', 
+%                 dpi=300, transparent=True)
+
+%     plt.show()
+%   \end{lstlisting}
+% \end{center}
+
+% \begin{figure}[h!]
+%   \centering
+%   \includegraphics[width=0.5\textwidth, height=0.5\textheight, keepaspectratio]{time_series_example_Dow_Jones_small}
+% \end{figure}\newpage
+
+% % --------------------------------------Change In Dow Jones Index----------------------------------------
+
+% \begin{center}
+%   \begin{lstlisting}[language=Python, 
+%   caption={Изменение в индексе Доу Джонса.}, 
+%   label={lst:time_series_example_Dow_Jones_change_small}]
+% # process data
+% dowJones_df['change'] = dowJones_df['DJIA'].diff()
+
+% # create plot
+% with plt.rc_context(classic_style): # use context for styles not to interfere
+%     fig, ax = plt.subplots(figsize=(8, 6))
+%     ax.plot(dowJones_df.index, dowJones_df['change'], color=RED, linewidth=1.5)
+
+%     ax.set_title('Change in Dow Jones Index')
+%     decorate_regular_plot(ax, 'Year-Month', 'Index')
+
+%     # plt.savefig(f'{IMAGES_PATH}/time_series_example_Dow_Jones_change_small.png', dpi=300, transparent=True)
+
+%     plt.show()
+%   \end{lstlisting}
+% \end{center}
+
+% \begin{figure}[h!]
+%   \centering
+%   \includegraphics[width=0.5\textwidth, height=0.5\textheight, keepaspectratio]{time_series_example_Dow_Jones_change_small}
+% \end{figure}\newpage
+
+% % -----------------------------------------------Random-------------------------------------------------
+
+% \begin{center}
+%   \begin{lstlisting}[language=Python, 
+%   caption={Белый шум.}, 
+%   label={lst:time_series_example_random_small}]
+% # generate a normal distribution sample
+% sample_size=1000
+% random_series = pd.DataFrame(np.random.normal(size=sample_size)) 
+
+% # create plot
+% with plt.rc_context(classic_style): # use context for styles not to interfere
+%     fig, ax = plt.subplots(figsize=(8, 6))
+%     ax.plot(random_series, color=RED, linewidth=1.5)
+
+%     ax.set_title('White Noise')
+%     decorate_regular_plot(ax, '', '')
+
+%     plt.savefig(f'{IMAGES_PATH}/time_series_example_random_small.png', 
+%                 dpi=300, transparent=True)
+
+%     plt.show()
+%   \end{lstlisting}
+% \end{center}
+
+% \begin{figure}[h!]
+%   \centering
+%   \includegraphics[width=0.5\textwidth, height=0.5\textheight, keepaspectratio]{time_series_example_random_small}
+% \end{figure}\newpage
+
+% % -----------------------------------------------Sunspot Number-------------------------------------------------
+
+% \begin{center}
+%   \begin{lstlisting}[language=Python, 
+%   caption={Среднегодовое общее количество солнечных пятен \cite{silso}.}, 
+%   label={lst:time_series_example_sunspots_small}]
+% # load data
+% sunspot_df = pd.read_csv(
+%     f'{DATASETS_PATH}/sunspots.csv',
+%     sep=';', 
+%     header=None, 
+%     names=['Year', 'Sunspots', 'Col3', 'Col4', 'Col5']
+% ).set_index('Year').sort_index()
+
+% # process data
+% sunspot_df = sunspot_df[sunspot_df.index <= 1880.5]
+
+% # create plot
+% with plt.rc_context(classic_style): # use context for styles not to interfere
+%     fig, ax = plt.subplots(figsize=(8, 6))
+%     ax.plot(sunspot_df.index, sunspot_df['Sunspots'], color=RED, linewidth=1.5)
+
+%     ax.set_title('Yearly Mean Total Sunspot Number')
+%     decorate_regular_plot(ax, 'Year', 'Sunspot number')
+
+%     plt.savefig(f'{IMAGES_PATH}/time_series_example_sunspots_small.png', 
+%                 dpi=300, transparent=True)
+
+%     plt.show()
+%   \end{lstlisting}
+% \end{center}
+
+% \begin{figure}[h!]
+%   \centering
+%   \includegraphics[width=0.5\textwidth, height=0.5\textheight, keepaspectratio]{time_series_example_sunspots_small}
+% \end{figure}\newpage
+
+% % -----------------------------------------Airline Passengers-------------------------------------------
+
+% \begin{center}
+%   \begin{lstlisting}[language=Python, 
+%   caption={Пассажиры авиалиний.}, 
+%   label={lst:time_series_example_airline_small}]
+% # load data
+% airline_df = pd.read_csv(
+%     f'{DATASETS_PATH}/airline-passengers.csv',
+%     parse_dates=['Month'],
+%     dayfirst=False
+% ).set_index('Month').sort_index()
+
+% # create plot
+% with plt.rc_context(classic_style): # use context for styles not to interfere
+%     fig, ax = plt.subplots(figsize=(8, 6))
+%     ax.plot(airline_df.index, airline_df['Passengers'], color=RED, linewidth=1.5)
+
+%     ax.set_title('Monthly Airline Passengers (1949–1960)')
+%     decorate_regular_plot(ax, 'Year', 'Number of Passengers')
+
+%     plt.savefig(f'{IMAGES_PATH}/time_series_example_airline_small.png', 
+%                 dpi=300, transparent=True)
+
+%     plt.show()
+%   \end{lstlisting}
+% \end{center}
+
+% \begin{figure}[h!]
+%   \centering
+%   \includegraphics[width=0.5\textwidth, height=0.5\textheight, keepaspectratio]{time_series_example_airline_small}
+% \end{figure}\newpage
+
+% % -----------------------------Airline Passengers Box-Cox---------------------------------
+
+% \begin{center}
+%   \begin{lstlisting}[language=Python, 
+%   caption={Пассажиры авиалиний (после преобразования Бокса-Кокса).}, 
+%   label={lst:time_series_example_airline_boxcox_small}]
+% # apply box cox transformation
+% airline_df_stabilize, lambda_value = sp.stats.boxcox(airline_df['Passengers'])
+
+% # create plot
+% with plt.rc_context(classic_style): # use context for styles not to interfere
+%     fig, ax = plt.subplots(figsize=(8, 6))
+%     ax.plot(airline_df.index, airline_df_stabilize, color=RED, linewidth=1.5)
+
+%     ax.set_title('Stabilized Monthly Airline Passengers')
+%     decorate_regular_plot(ax, 'Year', 'Number of Passengers')
+
+%     plt.savefig(f'{IMAGES_PATH}/time_series_example_airline_boxcox_small.png', 
+%                 dpi=300, transparent=True)
+
+%     plt.show()
+%   \end{lstlisting}
+% \end{center}
+
+% \begin{figure}[h!]
+%   \centering
+%   \includegraphics[width=0.5\textwidth, height=0.5\textheight, keepaspectratio]{time_series_example_airline_boxcox_small}
+% \end{figure}\newpage
+
+% % -------------------------------------------------------------------------------------------------------
+% % ----------------------------------------------LAG PLOTS------------------------------------------------
+% % -------------------------------------------------------------------------------------------------------
+
+% \begin{center}
+%   \noindent\normalsize\bfseries
+%   Lag Plots
+% \end{center}\vspace{-17.5pt}
+
+% \begin{center}
+%   \begin{lstlisting}[language=Python]
+% plt.rcdefaults() # reset to defauls
+%   \end{lstlisting}
+% \end{center}
+
+% {\noindent\hspace{-12.5pt}\normalsize\bfseries Helper functions}\vspace{-10pt}
+% \begin{center}
+%   \begin{lstlisting}[language=Python]
+% # helper function to decorate plots
+% def decorate_lag_plot(ax, xname: str, 
+%                           yname: str, 
+%                           loc=None) -> None:
+%     SIZE_TICKS = 12
+
+%     # x and y axis labels
+%     ax.set_xlabel(xname, fontsize=20)
+%     ax.set_ylabel(yname, fontsize=20)
+
+%     # adjust tick labels size
+%     ax.tick_params(axis='both', which='major', labelsize=SIZE_TICKS)
+
+%     if loc:
+%         ax.legend(fontsize=10, loc=loc)
+
+%     plt.grid(True, linestyle='--', linewidth=0.05)
+%     plt.tight_layout()
+
+% # main function for creating lag plots
+% def lag_plot(df: pd.DataFrame, 
+%              value_name: str, 
+%              l: int=1, 
+%              file_name: str=None) -> None:
+%     lag_df = pd.DataFrame(df[value_name])
+%     lag_df['lag'] = df[value_name].shift(l)
+
+%     lag_df.dropna(inplace=True)
+
+%     _, ax = plt.subplots(figsize=(7, 6))
+
+%     decorate_lag_plot(ax, r'$y_t$', f'$y_{{t + {l}}}$', '')
+
+%     sns.scatterplot(data=lag_df, 
+%                     x=value_name,
+%                     y="lag", 
+%                     color=RICH_BLACK, 
+%                     size=100, 
+%                     legend=False, 
+%                     ax=ax)
+
+%     if file_name:
+%         plt.savefig(f'{IMAGES_PATH}/{file_name}.png', 
+%                     dpi=300, transparent=True)
+
+%     plt.show()
+%   \end{lstlisting}
+% \end{center}
+
+% % -------------------------------------------Wine Australia---------------------------------------------
+
+% {\noindent\hspace{-12.5pt}\normalsize\bfseries Wine Australia}\vspace{-10pt}
+% \begin{center}
+%   \begin{lstlisting}[language=Python, 
+%   caption={График задержек продаж вина в Австралии.}, 
+%   label={lst:time_series_lag_plot_wine}]
+% # load data
+% wine_df = pd.read_csv(
+%     f'{DATASETS_PATH}/AusWineSales.csv',
+%     parse_dates=['YearMonth'],
+%     dayfirst=False
+% ).set_index('YearMonth').sort_index()
+
+% # create plot
+% with plt.rc_context(lag_plot_style): # use context for styles not to interfere
+%     lag_plot(wine_df, 'Red', l=1, file_name=None)
+%   \end{lstlisting}
+% \end{center}
+
+% \begin{figure}[h!]
+%   \centering
+%   \includegraphics[width=0.6\textwidth, height=0.6\textheight, keepaspectratio]{australia_wine_lag_plot}
+% \end{figure}\newpage
+
+% % -----------------------------------------------Random-------------------------------------------------
+
+% {\noindent\hspace{-12.5pt}\normalsize\bfseries Random}\vspace{-10pt}
+% \begin{center}
+%   \begin{lstlisting}[language=Python, 
+%   caption={График задержек белого шума.}, 
+%   label={lst:time_series_lag_plot_random}]
+% # generate a normal distribution sample
+% sample_size=1000
+% random_series = pd.DataFrame(np.random.normal(size=sample_size)) 
+
+% # create plot
+% with plt.rc_context(lag_plot_style): # use context for styles not to interfere
+%     lag_plot(random_series, 0, l=1, file_name=None)
+%   \end{lstlisting}
+% \end{center}
+
+% \begin{figure}[h!]
+%   \centering
+%   \includegraphics[width=0.6\textwidth, height=0.6\textheight, keepaspectratio]{random_series_lag_plot}
+% \end{figure}\newpage
+
+% % ------------------------------------------------------------------------------------------------------
+% % ----------------------------------------CORRELATION MATRICES------------------------------------------
+% % ------------------------------------------------------------------------------------------------------
+
+% \begin{center}
+%   \noindent\normalsize\bfseries
+%   Correlation Matrices
+% \end{center}\vspace{-17.5pt}
+
+% \begin{center}
+%   \begin{lstlisting}[language=Python]
+% plt.rcdefaults() # reset to defauls
+%   \end{lstlisting}
+% \end{center}
+
+% {\noindent\hspace{-12.5pt}\normalsize\bfseries Helper functions}\vspace{-10pt}
+% \begin{center}
+%   \begin{lstlisting}[language=Python]
+% # main function for creating correlation matrix plots
+% def corr_matrix_plot(df: pd.DataFrame, value_name: str, 
+%                                        n: int=10, 
+%                                        file_name: str=None) -> None:
+%     lag_df = pd.DataFrame(df[value_name]).rename(columns={value_name: '$y_t$'})
+%     for l in range(1, n+1):
+%         lag_df[f'$y_{{t + {l}}}$'] = df[value_name].shift(l)
+
+%     lag_df.dropna(inplace=True)
+
+%     # compute the correlation matrix
+%     corr = lag_df.corr()
+
+%     # generate a mask for the upper triangle
+%     mask = np.triu(np.ones_like(corr, dtype=bool))
+
+%     # set up the matplotlib figure
+%     _, _ = plt.subplots(figsize=(11, 9))
+
+%     # generate a custom diverging colormap
+%     cmap = LinearSegmentedColormap.from_list('custom_cmap', [RICH_BLACK, RED])
+
+%     # draw the heatmap with the mask and correct aspect ratio
+%     sns.heatmap(corr, mask=mask, cmap=cmap, vmax=.3, center=0,
+%                       square=True, linewidths=.5, cbar_kws={"shrink": .5})
+
+%     if file_name:
+%         plt.savefig(f'{IMAGES_PATH}/{file_name}.png', 
+%                     dpi=300, transparent=True)
+
+%     plt.show()
+%   \end{lstlisting}
+% \end{center}
+
+% % --------------------------------------------Avocado Sales----------------------------------------------
+
+% {\noindent\hspace{-12.5pt}\normalsize\bfseries Avocado Sales}\vspace{-10pt}
+% \begin{center}
+%   \begin{lstlisting}[language=Python, 
+%   caption={Диагональная корреляционная матрица объема продаж авокадо.}, 
+%   label={lst:correlation_matrix_avocado}]
+% # load data
+% avocado_df = pd.read_csv(
+%     f'{DATASETS_PATH}/avocado.csv',
+%     parse_dates=['Date'],
+%     dayfirst=False
+% ).set_index('Date').sort_index()
+
+% # process data
+% avocado_df = avocado_df.groupby('Date')['Total Volume'].mean().reset_index()
+% avocado_df = avocado_df.set_index('Date').sort_index()
+
+% # create plot
+% corr_matrix_plot(avocado_df, 'Total Volume', n=20, file_name=None)
+%   \end{lstlisting}
+% \end{center}
+
+% \begin{figure}[h!]
+%   \centering
+%   \includegraphics[width=0.7\textwidth, height=0.7\textheight, keepaspectratio]{correlation_matrix_avocado}
+% \end{figure}
+
+% % ------------------------------------------------------------------------------------------------------
+% % -----------------------------------AUTOCORRELATION FUNCTION (ACF)-------------------------------------
+% % ------------------------------------------------------------------------------------------------------
+
+% \begin{center}
+%   \noindent\normalsize\bfseries
+%   Autocorrelation Function (ACF)
+% \end{center}\vspace{-17.5pt}
+
+% \begin{center}
+%   \begin{lstlisting}[language=Python]
+% plt.rcdefaults() # reset to defauls
+%   \end{lstlisting}
+% \end{center}
+
+% {\noindent\hspace{-12.5pt}\normalsize\bfseries Helper functions}\vspace{-10pt}
+% \begin{center}
+%   \begin{lstlisting}[language=Python]
+% # helper function to decorate plots
+% def decorate_acf(ax, loc=None) -> None:
+%     SIZE_TICKS = 24
+
+%     # Eliminate upper and right axes
+%     ax.spines['right'].set_color('none')
+%     ax.spines['top'].set_color('none')
+
+%     # Show ticks in the left and lower axes only
+%     ax.xaxis.set_ticks_position('bottom')
+%     ax.yaxis.set_ticks_position('left')
+
+%     # Adjust the font size of the tick labels
+%     ax.tick_params(axis='both', which='major', labelsize=SIZE_TICKS)
+
+%     if loc:
+%         plt.legend(fontsize=10, loc=loc)
+
+%     # Adjust layout
+%     plt.tight_layout()
+%   \end{lstlisting}
+% \end{center}
+
+% % -------------------------------------------Wine Australia---------------------------------------------
+
+% {\noindent\hspace{-12.5pt}\normalsize\bfseries Wine Australia}\vspace{-10pt}
+% \begin{center}
+%   \begin{lstlisting}[language=Python, 
+%   caption={Коррелограмма для объёма продаж красного вина в Австралии.}, 
+%   label={lst:acf_wine}]
+% # load data
+% wine_df = pd.read_csv(
+%     f'{DATASETS_PATH}/AusWineSales.csv',
+%     parse_dates=['YearMonth'],
+%     dayfirst=False
+% ).set_index('YearMonth').sort_index()
+
+% # create plot
+% with plt.rc_context(acf_plot_style): # use context for styles not to interfere
+%     _, ax = plt.subplots(figsize=(20, 6))
+
+%     decorate_acf(ax)
+
+%     sm.graphics.tsaplots.plot_acf(wine_df['Red'], 
+%                                   lags=np.arange(0, 100, 1), 
+%                                   ax=ax, 
+%                                   color=RICH_BLACK, 
+%                                   vlines_kwargs={'colors': RICH_BLACK, 
+%                                                  'linewidth': 1.5});
+
+%     ax.set_ylim(-0.75, 1)
+%     ax.grid(False)
+
+%     plt.savefig(f'{IMAGES_PATH}/acf_wine.png', 
+%                 dpi=300, transparent=True)
+
+%     plt.show();
+%   \end{lstlisting}
+% \end{center}
+
+% \begin{figure}[h!]
+%   \centering
+%   \includegraphics[width=1\textwidth, height=1\textheight, keepaspectratio]{acf_wine}
+% \end{figure}
 
 % -----------------------------------------------CONTENT-------------------------------------------------
 

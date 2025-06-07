@@ -153,3 +153,51 @@ class DataEmbedding_wo_pos(nn.Module):
     def forward(self, x, x_mark):
         x = self.value_embedding(x) + self.temporal_embedding(x_mark)
         return self.dropout(x)
+
+
+class ConvStem(nn.Module):
+    def __init__(self, c_in, d_model):
+        super(ConvStem, self).__init__()
+
+        self.conv0 = nn.Conv1d(c_in, d_model, kernel_size=1)
+
+        self.conv1 = nn.Conv1d(in_channels=c_in,
+                               out_channels=d_model,
+                               kernel_size=5,
+                               padding=2)
+        self.norm1 = nn.InstanceNorm1d(num_features=d_model, affine=True)
+        self.activation1 = nn.GELU()
+
+        self.conv2 = nn.Conv1d(in_channels=d_model,
+                               out_channels=d_model,
+                               kernel_size=3,
+                               padding=1,
+                               groups=d_model)
+        self.norm2 = nn.InstanceNorm1d(num_features=d_model, affine=True)
+        self.activation2 = nn.GELU()
+
+    def forward(self, x):
+        x = x.permute(0, 2, 1) 
+        res = self.conv0(x)
+
+        y = self.conv1(x)
+        y = self.norm1(y)
+        y = self.activation1(y)
+
+        y = self.conv2(y)
+        y = self.norm2(y)
+        y = self.activation2(y)
+
+        out = res + y
+        return out.permute(0, 2, 1)
+
+
+class ConvEmbedding(DataEmbedding):
+    def __init__(self, c_in, d_model, embed_type='fixed', freq='h', dropout=0.1):
+        super().__init__(c_in, d_model, embed_type, freq, dropout)
+        
+        # replace TokenEmbedding with ConvStem
+        self.value_embedding = ConvStem(c_in, d_model)
+
+    def forward(self, x, x_mark):
+        return super().forward(x, x_mark)

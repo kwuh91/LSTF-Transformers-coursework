@@ -1,6 +1,0 @@
-ETTh1_96_24_Autoformer_ETTh1_ftM_sl96_ll48_pl24_dm512_nh8_el2_dl1_df2048_fc3_ebtimeF_dtTrue_Exp_0  
-mse:0.38355761766433716, mae:0.4106500446796417
-
-ETTh1_96_24_Informer_ETTh1_ftM_sl96_ll48_pl24_dm512_nh8_el2_dl1_df2048_fc5_ebtimeF_dtTrue_Exp_0  
-mse:0.5094155669212341, mae:0.5201846361160278
-
