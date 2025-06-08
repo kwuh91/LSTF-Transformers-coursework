@@ -6,6 +6,12 @@ from math import sqrt
 from utils.masking import TriangularCausalMask, ProbMask
 from reformer_pytorch import LSHSelfAttention
 
+from fast_transformers.attention import (
+    LinearAttention,       # encoder & X-attention
+    CausalLinearAttention  # causal self-attention in the decoder
+)
+from fast_transformers.feature_maps import Favor  # FAVOR+ kernel
+from fast_transformers.masking import LengthMask, TriangularCausalMask
 
 class FullAttention(nn.Module):
     def __init__(self, mask_flag=True, factor=5, scale=None, attention_dropout=0.1, output_attention=False):
@@ -125,6 +131,45 @@ class ProbAttention(nn.Module):
         context, attn = self._update_context(context, values, scores_top, index, L_Q, attn_mask)
 
         return context.contiguous(), attn
+
+
+class FAVORAttention(nn.Module):
+    def __init__(self, mask_flag, d_model, n_heads, n_random_features=256, 
+                 attention_dropout=0.1, output_attention=False):
+        super(FAVORAttention, self).__init__()
+
+        self.d_k = d_model // n_heads
+        self.mask_flag = mask_flag
+        self.dropout = nn.Dropout(attention_dropout)
+
+        fm_factory = Favor.factory(n_dims=n_random_features)
+        if mask_flag:
+            self.core = CausalLinearAttention(self.d_k, feature_map=fm_factory)
+        else:
+            self.core = LinearAttention(self.d_k, feature_map=fm_factory)
+
+    def forward(self, queries, keys, values, attn_mask=None):
+        B, L_Q, _, _ = queries.shape
+        _, L_K, _, _ = keys.shape
+        device = queries.device
+
+        lengths = torch.full((B,), L_K, dtype=torch.int64, device=device)
+        len_mask = LengthMask(lengths, max_len=L_K)
+
+        if self.mask_flag:
+            attn_mask = TriangularCausalMask(L_Q, device=device)
+            lengths = torch.full((B,), L_Q, dtype=torch.int64, device=device)
+            len_mask = LengthMask(lengths, max_len=L_Q)
+        else:
+            attn_mask = len_mask
+
+        context = self.core(queries, keys, values,
+                            attn_mask,
+                            len_mask,
+                            len_mask)
+        
+        # context = self.dropout(context)
+        return context.contiguous(), None
 
 
 class AttentionLayer(nn.Module):

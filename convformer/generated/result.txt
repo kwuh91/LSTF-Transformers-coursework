@@ -298,3 +298,12 @@ mse:1.1587413549423218, mae:0.8706608414649963
 ETTh1_96_720_Informer_ETTh1_ftM_sl96_ll48_pl720_dm512_nh8_el2_dl1_df2048_fc5_ebtimeF_dtTrue_Exp_9  
 mse:1.2906781435012817, mae:0.9237149357795715
 
+ETTh1_96_24_Informer_FAVOR_ETTh1_ftM_sl96_ll48_pl24_dm512_nh8_el2_dl1_df2048_fc5_ebtimeF_dtTrue_Exp_0  
+mse:0.5117937326431274, mae:0.49778318405151367
+
+ETTh1_96_24_Informer_FAVOR_ETTh1_ftM_sl96_ll48_pl24_dm512_nh8_el2_dl1_df2048_fc5_ebtimeF_dtTrue_Exp_0  
+mse:0.5104325413703918, mae:0.4971659481525421
+
+ETTh1_96_24_Informer_FAVOR_ETTh1_ftM_sl96_ll48_pl24_dm512_nh8_el2_dl1_df2048_fc5_ebtimeF_dtTrue_Exp_0  
+mse:0.529826819896698, mae:0.5140613317489624
+

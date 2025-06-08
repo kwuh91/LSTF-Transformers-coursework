@@ -37,6 +37,7 @@ def main():
     parser.add_argument('--pred_len', type=int, default=96, help='prediction sequence length')
 
     # model define
+    parser.add_argument('--num_rand_features', type=int, default=256, help='for FAVOR+')
     parser.add_argument('--bucket_size', type=int, default=4, help='for Reformer')
     parser.add_argument('--n_hashes', type=int, default=4, help='for Reformer')
     parser.add_argument('--enc_in', type=int, default=7, help='encoder input size')

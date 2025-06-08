@@ -1,13 +1,13 @@
 import torch
 import torch.nn as nn
 from layers.Transformer_EncDec import Decoder, DecoderLayer, Encoder, EncoderLayer, ConvLayer
-from layers.SelfAttention_Family import ProbAttention, AttentionLayer, FullAttention
-from layers.Embed import DataEmbedding, ConvEmbedding
+from layers.SelfAttention_Family import ProbAttention, AttentionLayer, FullAttention, FAVORAttention
+from layers.Embed import DataEmbedding
 
 
 class Model(nn.Module):
     """
-    Informer with TokenEmbedding replaced with ConvStem
+    Informer with Propspare attention replaced with FAVOR+
     """
     def __init__(self, configs):
         super(Model, self).__init__()
@@ -15,15 +15,9 @@ class Model(nn.Module):
         self.output_attention = configs.output_attention
 
         # Embedding
-
-        # self.enc_embedding = DataEmbedding(configs.enc_in, configs.d_model, configs.embed, configs.freq,
-        #                                    configs.dropout)
-        # self.dec_embedding = DataEmbedding(configs.dec_in, configs.d_model, configs.embed, configs.freq,
-        #                                    configs.dropout)
-
-        self.enc_embedding = ConvEmbedding(configs.enc_in, configs.d_model, configs.embed, configs.freq,
+        self.enc_embedding = DataEmbedding(configs.enc_in, configs.d_model, configs.embed, configs.freq,
                                            configs.dropout)
-        self.dec_embedding = ConvEmbedding(configs.dec_in, configs.d_model, configs.embed, configs.freq,
+        self.dec_embedding = DataEmbedding(configs.dec_in, configs.d_model, configs.embed, configs.freq,
                                            configs.dropout)
 
         # Encoder
@@ -31,9 +25,12 @@ class Model(nn.Module):
             [
                 EncoderLayer(
                     AttentionLayer(
-                        ProbAttention(False, configs.factor, attention_dropout=configs.dropout,
-                                      output_attention=configs.output_attention),
-                        configs.d_model, configs.n_heads),
+                        # ProbAttention(False, configs.factor, attention_dropout=configs.dropout,
+                        #               output_attention=configs.output_attention),
+                        FAVORAttention(False, configs.d_model, configs.n_heads, configs.num_rand_features, 
+                                       attention_dropout=configs.dropout),
+                        configs.d_model, configs.n_heads, 
+                    ),
                     configs.d_model,
                     configs.d_ff,
                     dropout=configs.dropout,
@@ -52,11 +49,15 @@ class Model(nn.Module):
             [
                 DecoderLayer(
                     AttentionLayer(
-                        ProbAttention(True, configs.factor, attention_dropout=configs.dropout, output_attention=False),
-                        configs.d_model, configs.n_heads),
+                        # ProbAttention(True, configs.factor, attention_dropout=configs.dropout, output_attention=False),
+                        FAVORAttention(True, configs.d_model, configs.n_heads, configs.num_rand_features, 
+                                       attention_dropout=configs.dropout),
+                        configs.d_model, configs.n_heads
+                    ),
                     AttentionLayer(
                         FullAttention(False, configs.factor, attention_dropout=configs.dropout, output_attention=False),
-                        configs.d_model, configs.n_heads),
+                        configs.d_model, configs.n_heads
+                    ),
                     configs.d_model,
                     configs.d_ff,
                     dropout=configs.dropout,
