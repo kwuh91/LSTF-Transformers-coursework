@@ -448,3 +448,6 @@ mse:1.1260677576065063, mae:0.862410306930542
 ETTh1_96_720_Informer_FAVOR_ETTh1_ftM_sl96_ll48_pl720_dm512_nh8_el2_dl1_df2048_fc5_ebtimeF_dtTrue_Exp_9  
 mse:1.129069209098816, mae:0.8589059114456177
 
+ETTh1_96_24_Convformer_ETTh1_ftM_sl96_ll48_pl24_dm512_nh8_el2_dl1_df2048_fc5_ebtimeF_dtTrue_Exp_0  
+mse:0.3854784071445465, mae:0.4286803901195526
+

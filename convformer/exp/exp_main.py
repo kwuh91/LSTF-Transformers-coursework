@@ -6,7 +6,7 @@ logging.basicConfig(format='%(asctime)s,%(msecs)03d %(levelname)-8s [%(filename)
 from data_provider.data_factory import data_provider
 from exp.exp_basic import Exp_Basic
 from models import Informer, Autoformer, Transformer, Reformer
-from models.Convformer_Family import Informer_ConvStem, Informer_FAVOR
+from models.Convformer_Family import Informer_ConvStem, Informer_FAVOR, Informer_Decomp, Convformer
 from utils.tools import EarlyStopping, adjust_learning_rate, visual
 from utils.metrics import metric
 
@@ -35,8 +35,11 @@ class Exp_Main(Exp_Basic):
             'Informer': Informer,
             'Reformer': Reformer,
             'Informer_ConvStem': Informer_ConvStem,
-            'Informer_FAVOR': Informer_FAVOR
+            'Informer_FAVOR': Informer_FAVOR,
+            'Informer_Decomp': Informer_Decomp,
+            'Convformer': Convformer
         }
+        print(f'RUNNING MODEL: {self.args.model}')
         model = model_dict[self.args.model].Model(self.args).float()
 
         if self.args.use_multi_gpu and self.args.use_gpu:
