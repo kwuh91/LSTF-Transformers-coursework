@@ -8,9 +8,14 @@
 
 Программный код, используемый в данной работе.\\
 
+% % ------------------------------------------------------------------------------------------------------
+% % ----------------------------------------------ConvStem------------------------------------------------
+% % ------------------------------------------------------------------------------------------------------
+
 {\noindent\hspace{-12.5pt}\normalsize\bfseries ConvStem}\vspace{-10pt}
 \begin{center}
   \begin{lstlisting}[language=Python, 
+  caption={Реализация блока ConvStem, состоящего из двух последовательных сверточных слоев с нормализацией и функцией активации.},  
   label={lst:convstem}]
 class ConvStem(nn.Module):
     def __init__(self, c_in, d_model):
@@ -58,6 +63,55 @@ class ConvEmbedding(DataEmbedding):
 
     def forward(self, x, x_mark):
         return super().forward(x, x_mark)
+  \end{lstlisting}
+\end{center}
+
+% % ------------------------------------------------------------------------------------------------------
+% % -----------------------------------------------FAVOR+-------------------------------------------------
+% % ------------------------------------------------------------------------------------------------------
+
+{\noindent\hspace{-12.5pt}\normalsize\bfseries FAVOR+ wrapper}\vspace{-10pt}
+\begin{center}
+  \begin{lstlisting}[language=Python,
+  caption={Реализация механизма линейного внимания FAVOR+ на основе библиотеки fast\_transformers.},  
+  label={lst:favor}]
+class FAVORAttention(nn.Module):
+    def __init__(self, mask_flag, d_model, n_heads, n_random_features=256, 
+                 attention_dropout=0.1, output_attention=False):
+        super(FAVORAttention, self).__init__()
+
+        self.d_k = d_model // n_heads
+        self.mask_flag = mask_flag
+        self.dropout = nn.Dropout(attention_dropout)
+
+        fm_factory = Favor.factory(n_dims=n_random_features)
+        if mask_flag:
+            self.core = CausalLinearAttention(self.d_k, feature_map=fm_factory)
+        else:
+            self.core = LinearAttention(self.d_k, feature_map=fm_factory)
+
+    def forward(self, queries, keys, values, attn_mask=None):
+        B, L_Q, _, _ = queries.shape
+        _, L_K, _, _ = keys.shape
+        device = queries.device
+
+        lengths = torch.full((B,), L_K, dtype=torch.int64, device=device)
+        len_mask = LengthMask(lengths, max_len=L_K)
+
+        if self.mask_flag:
+            attn_mask = TriangularCausalMask(L_Q, device=device)
+            lengths = torch.full((B,), L_Q, dtype=torch.int64, device=device)
+            len_mask = LengthMask(lengths, max_len=L_Q)
+        else:
+            attn_mask = len_mask
+
+        context = self.core(queries, keys, values,
+                            attn_mask,
+                            len_mask,
+                            len_mask)
+        
+        # context = self.dropout(context)
+        return context.contiguous(), None
   \end{lstlisting}
 \end{center}
 

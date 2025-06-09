@@ -289,6 +289,15 @@ Autoformer предлагает внедрить механизм декомпо
 
 \subsubsection{Заимствование механизма внимания из Performer}
 
+В качестве механизма внимания предлагается использовать FAVOR+ 
+(из Performer) вместо ProbSparse (оригинально используемого в Informer).
+
+Подобно тому, как в оригинальном Informer механизм FullAttention был заменен на 
+ProbSparse исключительно для вычисления self-attention в слоях кодировщика и 
+декодера, в нашей модификации ProbSparse будет заменен на FAVOR+ в тех же местах, 
+тогда как cross-attention останется реализованным через FullAttention. 
+Реализацию см. в \ref{lst:favor}.
+
 % probsparse self-attention from informer -> FAVOR+ from performer
 % leave corss-attention as is?
 
@@ -399,7 +408,7 @@ NVIDIA GTX 1660 SUPER GPU. Исходный код доступен
 
 Сравнение эффективности оригинальной модели Informer и модифицированной
 с заменой TokenEmbedding внутри Embdding layer на ConvStem 
-на метриках MSE \& MAE.
+на метриках MSE \& MAE (таблица \ref{tab:etth1-convstem}).
 
 \begin{table}[!ht]
     \centering
@@ -426,6 +435,48 @@ NVIDIA GTX 1660 SUPER GPU. Исходный код доступен
     для каждого из горизонтов.}
     \label{tab:etth1-convstem}
 \end{table}
+
+Было установлено, что при коротком горизонте предсказаний 
+ConvStem превосходит Informer; с увеличением длины горизонта 
+их результаты постепенно сравниваются, а при длинном горизонте 
+ConvStem начинает уступать, что ожидаемо для сверточных механизмов.
+
+\subsubsection{ProbSparse -> FAVOR+}
+
+Сравнение эффективности оригинальной модели Informer и модифицированной
+с заменой ProbAttention на FAVOR+ 
+на метриках MSE \& MAE (таблица \ref{tab:etth1-favor}).
+
+\begin{table}[!ht]
+    \centering
+    \begin{tabular}{c  cc  cc}
+    \toprule
+    \multirow{2}{*}{{Horizon}} 
+      & \multicolumn{2}{c}{{Informer}} 
+      & \multicolumn{2}{c}{with FAVOR+} \\
+    \cmidrule(lr){2-3} \cmidrule(lr){4-5}
+      & {MSE} & {MAE} 
+      & {MSE} & {MAE} \\
+    \midrule
+    24   & 0.556 & 0.547 & 0.525 & 0.528 \\
+    48   & 0.657 & 0.614 & 0.680 & 0.626 \\
+    168  & 0.862 & 0.725 & 0.889 & 0.751 \\
+    336  & 1.219 & 0.892 & 1.067 & 0.842 \\
+    720  & 1.183 & 0.871 & 1.090 & 0.842 \\
+    \bottomrule
+    \end{tabular}
+    \caption{Результаты многомерных предсказаний на датасете ETTh1 с 
+    горизонтами предсказаний: \{ 24, 48, 168, 336, 720 \}. 
+    Мы фиксируем входную длину последовательностей у моделей как 96.
+    Результаты были найдены в ходе усреднения по 10 отдельным запускам 
+    для каждого из горизонтов.}
+    \label{tab:etth1-favor}
+\end{table}
+
+Было установлено, что на всех горизонтах предсказаний различия в результатах 
+статистически незначимы, что ожидаемо, поскольку и ProbSparse ($O(L \log L)$ в среднем) 
+и FAVOR+ (около $O(Lr)$ при $r \ll L$) направлены на ускорение классического механизма 
+внимания ($O(L^2)$) при контролируемом уровне потерь в точности.
 
 % we get to compare (a) vanilla Informer, (b) Informer + Performer, 
 % (c) Informer + Performer + Autoformer‐decomp, and (d) a 
