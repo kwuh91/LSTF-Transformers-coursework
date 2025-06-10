@@ -8,5 +8,6 @@
 *.xdv
 *.bbl
 *.blg
+*.DS_Store
 checkpoints/
 results/
