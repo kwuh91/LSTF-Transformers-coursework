@@ -1,5 +1,6 @@
 # pyenv activate science-venv && cd Documents/VScodeProjects/RNN-TimeSeries-coursework/convformer && bash scripts/ETT_script/custom2.sh
 
+export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 export CUDA_VISIBLE_DEVICES=0
 
 # 720
@@ -20,7 +21,8 @@ python -u run.py \
   --dec_in 7 \
   --c_out 7 \
   --des 'Exp' \
-  --itr 1
+  --itr 1 \
+  --batch_size 30
 
 # 720
 python -u run.py \
@@ -41,4 +43,5 @@ python -u run.py \
   --dec_in 7 \
   --c_out 7 \
   --des 'Exp' \
-  --itr 1
+  --itr 1 \
+  --batch_size 30

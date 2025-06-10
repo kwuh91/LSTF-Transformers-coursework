@@ -398,7 +398,43 @@ ETT является важнейшим индикатором долгосро�
 % Brief summary of ETT-h1 (70 k rows, 8 vars, horizons)
 % Forecasting setup (seq = 168, pred ∈ {96,192,336,720})
 
+\newpage
+
 \subsubsection{Benchmark}
+
+Сравнение эффективности оригинальной модели Informer и модели Convformer
+на метриках MSE \& MAE \& RMSE \& MAPE \& MSPE (таблица \ref{tab:etth1-informer-convformer}).
+
+\begin{table}[!ht]
+    \centering
+    \resizebox{\textwidth}{!}{%
+      \begin{tabular}{c |
+                      *{5}{c} | 
+                      *{5}{c}}
+        \toprule
+        \multirow{2}{*}{{Horizon}} 
+          & \multicolumn{5}{c|}{{Informer}} 
+          & \multicolumn{5}{c}{{\textbf{Convformer}}} \\
+        \cmidrule(lr){2-6} \cmidrule(lr){7-11}
+          & {MSE} & {MAE} & {RMSE} & {MAPE} & {MSPE}
+          & {MSE} & {MAE} & {RMSE} & {MAPE} & {MSPE} \\
+        \midrule
+        24   & 0.555 & 0.546 & 0.744 & 11.800 & \textbf{50086.8}                     & \textbf{0.391} & \textbf{0.434} & \textbf{0.625} & \textbf{11.208} & 51139.6 \\
+        48   & 0.659 & 0.615 & 0.811 & 11.837 & \textbf{47824.1}                     & \textbf{0.419} & \textbf{0.445} & \textbf{0.647} & \textbf{10.910} & 48182.0 \\
+        168  & 0.838 & 0.714 & 0.915 & \textbf{10.581} & \textbf{37781.6}            & \textbf{0.430} & \textbf{0.456} & \textbf{0.656} & 11.274 & 45336.6 \\
+        336  & 1.237 & 0.903 & 1.111 & 17.100 & 108836.9                             & \textbf{0.460} & \textbf{0.485} & \textbf{0.679} & \textbf{12.572} & \textbf{57557.9} \\
+        720  & 1.181 & 0.870 & 1.086 & 17.186 & 113632.0                             & \textbf{0.518} & \textbf{0.533} & \textbf{0.720} & \textbf{12.902} & \textbf{60165.5} \\
+        \bottomrule
+      \end{tabular}%
+    }
+    \caption{Результаты многомерных предсказаний на датасете ETTh1 с 
+    горизонтами предсказаний: \{ 24, 48, 168, 336, 720 \}. 
+    Мы фиксируем входную длину последовательностей у моделей как 96.
+    Результаты были найдены в ходе усреднения по 10 отдельным запускам 
+    для каждого из горизонтов.}
+    \label{tab:etth1-informer-convformer}
+\end{table}
+  
 
 % DONT FORGET MAPE 
 % results for the full hybrid model
@@ -534,6 +570,89 @@ ConvStem начинает уступать, что ожидаемо для св�
 % “pure Autoformer” baseline—all within the same code framework.
 
 % etc.
+
+\subsection{Дополнение к основным результатам}
+
+\enlargethispage{2\baselineskip}
+\begin{table}[H]
+    \centering
+    \caption{Performance visualizations of different models across multiple forecast horizons.}
+    \label{tab:models-horizons}
+    \resizebox{0.98\textwidth}{!}{
+    \setlength{\tabcolsep}{4pt}        % adjust horizontal padding
+    \renewcommand{\arraystretch}{1.5}  % big body‐row spacing
+    \begin{tabular}{lccccc}
+      \toprule
+      % first header row, pulled in by negative space
+      \multirow{2}{*}{\rotatebox{90}{{} Model}} \\[-3.25em]
+        & \multicolumn{5}{c}{{Horizon}} \\[-0.25em]
+      \cmidrule(lr){2-6} \\[-3.25em]
+      % second header row, also pulled in
+        & {24}
+        & {48}
+        & {168}
+        & {336}
+        & {720} \\[-0.25em]
+      \midrule
+  
+      % body rows with the large 1.5× spacing
+      \rotatebox{90}{Convformer}
+        & \includegraphics[width=2.9cm]{24_Convformer.pdf}
+        & \includegraphics[width=2.9cm]{48_Convformer.pdf}
+        & \includegraphics[width=2.9cm]{168_Convformer.pdf}
+        & \includegraphics[width=2.9cm]{336_Convformer.pdf}
+        & \includegraphics[width=2.9cm]{720_Convformer.pdf} \\[1.8em]
+  
+      \rotatebox{90}{{} Informer}
+        & \includegraphics[width=2.9cm]{24_Informer.pdf}
+        & \includegraphics[width=2.9cm]{48_Informer.pdf}
+        & \includegraphics[width=2.9cm]{168_Informer.pdf}
+        & \includegraphics[width=2.9cm]{336_Informer.pdf}
+        & \includegraphics[width=2.9cm]{720_Informer.pdf} \\[1.8em]
+  
+      \rotatebox{90}{Autoformer}
+        & \includegraphics[width=2.9cm]{24_Autoformer.pdf}
+        & \includegraphics[width=2.9cm]{48_Autoformer.pdf}
+        & \includegraphics[width=2.9cm]{168_Autoformer.pdf}
+        & \includegraphics[width=2.9cm]{336_Autoformer.pdf}
+        & \includegraphics[width=2.9cm]{test.pdf} \\[1.8em] % TODO 720_Autoformer.pdf
+  
+      \rotatebox{90}{{} Reformer}
+        & \includegraphics[width=2.9cm]{24_Reformer.pdf}
+        & \includegraphics[width=2.9cm]{48_Reformer.pdf}
+        & \includegraphics[width=2.9cm]{168_Reformer.pdf}
+        & \includegraphics[width=2.9cm]{336_Reformer.pdf}
+        & \includegraphics[width=2.9cm]{720_Reformer.pdf} \\[1.8em]
+  
+      \rotatebox{90}{ConvStem}
+        & \includegraphics[width=2.9cm]{24_ConvStem.pdf}
+        & \includegraphics[width=2.9cm]{48_ConvStem.pdf}
+        & \includegraphics[width=2.9cm]{168_ConvStem.pdf}
+        & \includegraphics[width=2.9cm]{336_ConvStem.pdf}
+        & \includegraphics[width=2.9cm]{720_ConvStem.pdf} \\[1.8em]
+  
+      \rotatebox{90}{{} {} Decomp}
+        & \includegraphics[width=2.9cm]{24_Decomp.pdf}
+        & \includegraphics[width=2.9cm]{48_Decomp.pdf}
+        & \includegraphics[width=2.9cm]{168_Decomp.pdf}
+        & \includegraphics[width=2.9cm]{336_Decomp.pdf}
+        & \includegraphics[width=2.9cm]{720_Decomp.pdf} \\[1.8em]
+  
+      \rotatebox{90}{{} {} {} FAVOR}
+        & \includegraphics[width=2.9cm]{24_FAVOR.pdf}
+        & \includegraphics[width=2.9cm]{48_FAVOR.pdf}
+        & \includegraphics[width=2.9cm]{168_FAVOR.pdf}
+        & \includegraphics[width=2.9cm]{336_FAVOR.pdf}
+        & \includegraphics[width=2.9cm]{720_FAVOR.pdf} \\[1.8em]
+    \end{tabular}
+    }
+\end{table}
+
+{\color{red}
+To evaluate the prediction of different models, we plot the last dimension of forecasting results that are from the
+test set of ETT dataset for qualitative comparison (Figures 8, 9, 10, and 11). Our model gives the best performance
+among different models. Moreover, we observe that Autoformer can accurately predict the periodicity and
+long-term variation.}
 
 \subsection{Результаты}
 

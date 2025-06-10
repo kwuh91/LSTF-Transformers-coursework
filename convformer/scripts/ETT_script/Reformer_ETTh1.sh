@@ -20,3 +20,6 @@ python -u run.py \
   --c_out 7 \
   --des 'Exp' \
   --itr 1
+
+# ETTh1_96_720_Reformer_ETTh1_ftM_sl96_ll48_pl720_dm512_nh8_el2_dl1_df2048_fc1_ebtimeF_dtTrue_Exp_0  
+# mse:1.1451867818832397, mae:0.8267222046852112, rmse:1.0701340436935425, mape:24.63397979736328, mspe:240523.859375
